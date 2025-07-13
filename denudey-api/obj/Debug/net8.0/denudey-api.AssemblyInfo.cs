@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("denudey-api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9fa01f0389f8a47006beeb0df592dcc83c5748aa")]
 [assembly: System.Reflection.AssemblyProductAttribute("denudey-api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("denudey-api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

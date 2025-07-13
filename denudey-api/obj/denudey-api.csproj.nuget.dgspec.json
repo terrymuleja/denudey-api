@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\thier\\source\\repos\\denudey-api\\denudey-api\\denudey-api.csproj": {}
+    "C:\\Users\\thier\\Downloads\\Denudey\\Backend\\denudey-api\\denudey-api\\denudey-api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\thier\\source\\repos\\denudey-api\\denudey-api\\denudey-api.csproj": {
+    "C:\\Users\\thier\\Downloads\\Denudey\\Backend\\denudey-api\\denudey-api\\denudey-api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\thier\\source\\repos\\denudey-api\\denudey-api\\denudey-api.csproj",
+        "projectUniqueName": "C:\\Users\\thier\\Downloads\\Denudey\\Backend\\denudey-api\\denudey-api\\denudey-api.csproj",
         "projectName": "denudey-api",
-        "projectPath": "C:\\Users\\thier\\source\\repos\\denudey-api\\denudey-api\\denudey-api.csproj",
+        "projectPath": "C:\\Users\\thier\\Downloads\\Denudey\\Backend\\denudey-api\\denudey-api\\denudey-api.csproj",
         "packagesPath": "C:\\Users\\thier\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\thier\\source\\repos\\denudey-api\\denudey-api\\obj\\",
+        "outputPath": "C:\\Users\\thier\\Downloads\\Denudey\\Backend\\denudey-api\\denudey-api\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -51,6 +51,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.VisualStudio.Azure.Containers.Tools.Targets": {
+              "target": "Package",
+              "version": "[1.21.0, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.6.2, )"
