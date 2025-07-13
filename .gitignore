@@ -26,10 +26,6 @@ obj/
 .idea/
 *.sln.iml
 
-# Docker
-**/Dockerfile
-**/.dockerignore
-
 # Ignore environment files
 .env
 .env.*
