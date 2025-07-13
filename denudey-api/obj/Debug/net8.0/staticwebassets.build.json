@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "Dy/JyLuYSRVZwoTsEgA4900CSdWSx9CPL1IiuIpQyOc=",
+  "Source": "denudey-api",
+  "BasePath": "_content/denudey-api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
