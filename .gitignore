@@ -29,3 +29,11 @@ obj/
 # Docker
 **/Dockerfile
 **/.dockerignore
+
+# Ignore environment files
+.env
+.env.*
+# Ignore publish folder
+/app/publish/
+/app/build/
+
