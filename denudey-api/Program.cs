@@ -1,4 +1,9 @@
 
+using Denudey.Api.Interfaces;
+using Denudey.Api.Services;
+using Denudey.DataAccess;
+using Microsoft.EntityFrameworkCore;
+
 namespace denudey_api
 {
     public class Program
@@ -11,6 +16,10 @@ namespace denudey_api
             builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
             // Add services to the container.
+            
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            builder.Services.AddScoped<ITokenService, TokenService>();
 
             builder.Services.AddControllers();
             builder.Services.AddCors(options =>
