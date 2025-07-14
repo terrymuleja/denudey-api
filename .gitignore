@@ -33,3 +33,18 @@ obj/
 /app/publish/
 /app/build/
 
+# Build artifacts
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.log
+
+# User-specific
+.vscode/
+*.user
+*.suo
+
+# EF Core
+Migrations/
