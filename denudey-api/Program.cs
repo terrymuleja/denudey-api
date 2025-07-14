@@ -2,6 +2,7 @@
 using Denudey.Api.Interfaces;
 using Denudey.Api.Services;
 using Denudey.DataAccess;
+using DenudeyApi.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace denudey_api
@@ -20,6 +21,8 @@ namespace denudey_api
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddHostedService<TokenCleanupService>();
+
 
             builder.Services.AddControllers();
             builder.Services.AddCors(options =>

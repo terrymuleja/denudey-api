@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Denudey.DataAccess;
 using Denudey.DataAccess.Entities;
 using Denudey.Api.Models.DTOs;
 using Denudey.Api.Interfaces;
+using DenudeyApi.Models.DTOs;
 
 
 namespace denudey_api.Controllers;
@@ -121,6 +123,108 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         await db.SaveChangesAsync();
 
         return Ok(new { message = "Logged out successfully" });
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAllDevices()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+            return Unauthorized(new { message = "Invalid access token" });
+
+        var userGuid = Guid.Parse(userId);
+
+        var tokens = await db.RefreshTokens
+            .Where(rt => rt.UserId == userGuid && !rt.Revoked)
+            .ToListAsync();
+
+        foreach (var token in tokens)
+        {
+            token.Revoked = true;
+        }
+
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Logged out from all devices" });
+    }
+
+    [Authorize]
+    [HttpGet("sessions")]
+    public async Task<IActionResult> GetSessions()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var userGuid = Guid.Parse(userId);
+
+        var sessions = await db.RefreshTokens
+            .Where(rt => rt.UserId == userGuid)
+            .OrderByDescending(rt => rt.CreatedAt)
+            .Select(rt => new SessionDto(
+                rt.DeviceId ?? "Unknown",
+                rt.CreatedAt,
+                rt.ExpiresAt,
+                rt.Revoked
+            ))
+            .ToListAsync();
+
+        return Ok(sessions);
+    }
+
+    [Authorize]
+    [HttpDelete("session/{token}")]
+    public async Task<IActionResult> RevokeSession(string token)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var tokenToRevoke = await db.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == token && rt.UserId == Guid.Parse(userId));
+
+        if (tokenToRevoke is null)
+            return NotFound(new { message = "Session not found" });
+
+        if (tokenToRevoke.Revoked)
+            return BadRequest(new { message = "Session already revoked" });
+
+        tokenToRevoke.Revoked = true;
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Session revoked successfully" });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetProfile([FromHeader(Name = "X-Refresh-Token")] string? refreshToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userId, out var userGuid)) return Unauthorized();
+
+        var user = await db.Users
+            .Where(u => u.Id == userGuid)
+            .Select(u => new { u.Id, u.Username, u.Email })
+            .FirstOrDefaultAsync();
+
+        if (user == null) return Unauthorized();
+
+        string? deviceId = null;
+        DateTime? expiresAt = null;
+
+        if (!string.IsNullOrEmpty(refreshToken))
+        {
+            var rt = await db.RefreshTokens
+                .FirstOrDefaultAsync(t => t.Token == refreshToken && t.UserId == userGuid);
+
+            if (rt is not null)
+            {
+                deviceId = rt.DeviceId;
+                expiresAt = rt.ExpiresAt;
+            }
+        }
+
+        return Ok(new MeResponse(user.Id, user.Username, user.Email, deviceId, expiresAt));
     }
 
 
