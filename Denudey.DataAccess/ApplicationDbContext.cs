@@ -19,6 +19,13 @@ namespace Denudey.DataAccess
         {
             base.OnModelCreating(modelBuilder);
 
+            // Seed roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = RoleNames.Admin },
+                new Role { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = RoleNames.Model },
+                new Role { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = RoleNames.Requester }
+            );
+
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 

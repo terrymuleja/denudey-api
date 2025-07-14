@@ -14,17 +14,18 @@ public class TokenCleanupService(ApplicationDbContext db, ILogger<TokenCleanupSe
             try
             {
                 var now = DateTime.UtcNow;
+
+                // Revoke expired, still-active tokens
                 var expired = await db.RefreshTokens
-                    .Where(t => t.ExpiresAt < now && !t.Revoked)
+                    .Where(t => t.ExpiresAt < now && t.Revoked == null)
                     .ToListAsync(stoppingToken);
 
                 foreach (var token in expired)
-                {
-                    token.Revoked = true;
-                }
+                    token.Revoked = DateTime.UtcNow;
 
+                // Delete revoked tokens older than 30 days
                 var oldRevoked = await db.RefreshTokens
-                    .Where(t => t.Revoked && t.ExpiresAt < now.AddDays(-30))
+                    .Where(t => t.Revoked != null && t.Revoked < now.AddDays(-30))
                     .ToListAsync(stoppingToken);
 
                 if (expired.Any() || oldRevoked.Any())
@@ -49,5 +50,4 @@ public class TokenCleanupService(ApplicationDbContext db, ILogger<TokenCleanupSe
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }
-
 }

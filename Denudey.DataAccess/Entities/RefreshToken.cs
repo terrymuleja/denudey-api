@@ -9,10 +9,11 @@ public class RefreshToken
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; }
 
-    public bool Revoked { get; set; } = false;
+    public DateTime? Revoked { get; set; }
 
     public string? DeviceId { get; set; }
 
+    public string? RevokedBy { get; set; } // "user", "admin", "system"
 
     // Navigation
     public ApplicationUser? User { get; set; }

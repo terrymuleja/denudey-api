@@ -5,5 +5,6 @@ public record MeResponse(
     string Username,
     string Email,
     string? CurrentDeviceId,
-    DateTime? CurrentTokenExpiresAt
+    DateTime? CurrentTokenExpiresAt,
+    List<string> Roles
 );

@@ -16,24 +16,36 @@ namespace denudey_api.Controllers;
 public class AuthController(ApplicationDbContext db, ITokenService tokenService) : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, [FromServices] ApplicationDbContext db)
     {
-        var exists = await db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        if (exists != null)
-            return BadRequest(new { message = "Email already registered" });
+        if (await db.Users.AnyAsync(u => u.Email == request.Email))
+            return Conflict("Email already in use");
 
         var user = new ApplicationUser
         {
             Username = request.Username,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            DeviceId = request.DeviceId
+            DeviceId = request.DeviceId,
+            CreatedAt = DateTime.UtcNow
         };
 
         db.Users.Add(user);
+        await db.SaveChangesAsync(); // Save user first to get the ID
+
+        // Assign default role: "model"
+        var role = await db.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.Model);
+        if (role is null) return Problem("Default role not found");
+
+        db.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = role.Id
+        });
+
         await db.SaveChangesAsync();
 
-        return Ok(new { message = "User registered successfully" });
+        return Ok("Registered successfully");
     }
 
     [HttpPost("login")]
@@ -44,21 +56,21 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
             return Unauthorized(new { message = "Invalid credentials" });
 
         var existingToken = await db.RefreshTokens
-            .FirstOrDefaultAsync(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && !t.Revoked);
+            .FirstOrDefaultAsync(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && t.Revoked == null);
 
         if (existingToken is not null)
         {
-            existingToken.Revoked = true;
+            existingToken.Revoked = DateTime.UtcNow;
         }
         else
         {
             // Clean up old tokens for this user/device
             var oldTokens = await db.RefreshTokens
-                .Where(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && !t.Revoked)
+                .Where(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && t.Revoked == null)
                 .ToListAsync();
             foreach (var token in oldTokens)
             {
-                token.Revoked = true;
+                token.Revoked = DateTime.UtcNow;
             }
         }
 
@@ -88,10 +100,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
             .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.Token == request.Token && rt.DeviceId == request.DeviceId);
 
-        if (storedToken == null || storedToken.Revoked || storedToken.ExpiresAt < DateTime.UtcNow)
+        if (storedToken == null || storedToken.Revoked != null || storedToken.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Invalid or expired token" });
 
-        storedToken.Revoked = true;
+        storedToken.Revoked = DateTime.UtcNow;
 
         var newToken = new RefreshToken
         {
@@ -116,10 +128,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
     {
         var token = await db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == refreshToken);
 
-        if (token == null || token.Revoked)
+        if (token == null || token.Revoked != null)
             return BadRequest(new { message = "Already logged out or invalid token" });
 
-        token.Revoked = true;
+        token.Revoked = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
         return Ok(new { message = "Logged out successfully" });
@@ -137,18 +149,19 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         var userGuid = Guid.Parse(userId);
 
         var tokens = await db.RefreshTokens
-            .Where(rt => rt.UserId == userGuid && !rt.Revoked)
+            .Where(rt => rt.UserId == userGuid && rt.Revoked == null)
             .ToListAsync();
 
         foreach (var token in tokens)
         {
-            token.Revoked = true;
+            token.Revoked = DateTime.UtcNow;
         }
 
         await db.SaveChangesAsync();
 
         return Ok(new { message = "Logged out from all devices" });
     }
+
 
     [Authorize]
     [HttpGet("sessions")]
@@ -173,6 +186,7 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         return Ok(sessions);
     }
 
+
     [Authorize]
     [HttpDelete("session/{token}")]
     public async Task<IActionResult> RevokeSession(string token)
@@ -186,10 +200,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         if (tokenToRevoke is null)
             return NotFound(new { message = "Session not found" });
 
-        if (tokenToRevoke.Revoked)
+        if (tokenToRevoke.Revoked == null)
             return BadRequest(new { message = "Session already revoked" });
 
-        tokenToRevoke.Revoked = true;
+        tokenToRevoke.Revoked = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
         return Ok(new { message = "Session revoked successfully" });
@@ -197,34 +211,42 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
     [Authorize]
     [HttpGet("me")]
-    public async Task<IActionResult> GetProfile([FromHeader(Name = "X-Refresh-Token")] string? refreshToken)
+    public async Task<IActionResult> Me(
+        [FromServices] ApplicationDbContext db,
+        [FromServices] IHttpContextAccessor httpContextAccessor)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userId, out var userGuid)) return Unauthorized();
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
 
         var user = await db.Users
-            .Where(u => u.Id == userGuid)
-            .Select(u => new { u.Id, u.Username, u.Email })
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user is null) return NotFound("User not found");
+
+        // Extract current token from Authorization header
+        var accessToken = httpContextAccessor.HttpContext?.Request.Headers["Authorization"]
+            .FirstOrDefault()?.Replace("Bearer ", "");
+
+        var refreshToken = await db.RefreshTokens
+            .Where(rt => rt.UserId == user.Id && rt.Token == accessToken)
+            .OrderByDescending(rt => rt.ExpiresAt)
             .FirstOrDefaultAsync();
 
-        if (user == null) return Unauthorized();
+        var response = new MeResponse(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.DeviceId,
+            refreshToken?.ExpiresAt,
+            user.UserRoles.Select(ur => ur.Role.Name).ToList()
+        );
 
-        string? deviceId = null;
-        DateTime? expiresAt = null;
-
-        if (!string.IsNullOrEmpty(refreshToken))
-        {
-            var rt = await db.RefreshTokens
-                .FirstOrDefaultAsync(t => t.Token == refreshToken && t.UserId == userGuid);
-
-            if (rt is not null)
-            {
-                deviceId = rt.DeviceId;
-                expiresAt = rt.ExpiresAt;
-            }
-        }
-
-        return Ok(new MeResponse(user.Id, user.Username, user.Email, deviceId, expiresAt));
+        return Ok(response);
     }
 
 
