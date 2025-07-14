@@ -2,6 +2,7 @@
 using Denudey.Api.Interfaces;
 using Denudey.Api.Services;
 using Denudey.DataAccess;
+using DenudeyApi.Seeders;
 using DenudeyApi.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ namespace denudey_api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,17 @@ namespace denudey_api
 
             var app = builder.Build();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("Seeding roles...");
+                await RoleSeeder.SeedAsync(db);
+                logger.LogInformation("Seeding completed.");
+
+            }
+
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment() || true)
             {
@@ -52,6 +64,7 @@ namespace denudey_api
 
             app.UseAuthorization();
 
+          
 
             app.MapControllers();
 
