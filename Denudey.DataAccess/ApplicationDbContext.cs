@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Denudey.Api.Domain.Entities;
 using Denudey.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,9 @@ namespace Denudey.DataAccess
         public DbSet<Role> Roles { get; set; }
 
         public DbSet<UserRole> UserRoles { get; set; }
+
+        public DbSet<ScamflixEpisode> ScamflixEpisodes => Set<ScamflixEpisode>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +42,18 @@ namespace Denudey.DataAccess
                 .HasOne(ur => ur.Role)
                 .WithMany(r => r.UserRoles)
                 .HasForeignKey(ur => ur.RoleId);
+
+            modelBuilder.Entity<ScamflixEpisode>(entity =>
+            {
+                entity.ToTable("ScamflixEpisodes");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ImageUrl).IsRequired();
+                entity.Property(e => e.Tags);
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            });
+
         }
 
 

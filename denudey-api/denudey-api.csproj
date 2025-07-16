@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\denudey-api.domain\denudey-api.domain.csproj" />
     <ProjectReference Include="..\Denudey.DataAccess\Denudey.DataAccess.csproj" />
   </ItemGroup>
 

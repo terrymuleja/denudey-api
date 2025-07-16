@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "denudey-api", "denudey-api\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.DataAccess", "Denudey.DataAccess\Denudey.DataAccess.csproj", "{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "denudey-api.domain", "denudey-api.domain\denudey-api.domain.csproj", "{516DA00C-9785-40E8-AB04-25CFA6F4953D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
