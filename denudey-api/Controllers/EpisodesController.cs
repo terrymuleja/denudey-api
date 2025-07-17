@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Denudey.Api.Domain;
 using Denudey.Api.Domain.Entities;
+using Denudey.Api.Models;
 using Denudey.Api.Models.DTOs;
 using Denudey.DataAccess;
 using Microsoft.AspNetCore.Authorization;
@@ -17,8 +18,12 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Title) || dto.Title.Length < 20)
-            return BadRequest(new { error = "Title must be at least 20 characters long." });
+        if (string.IsNullOrWhiteSpace(dto.Title) || dto.Title.Length < 5)
+            return BadRequest(new { error = "Title must be at least 5 characters long." });
+
+        if (dto.Title.Length > 35)
+            return BadRequest(new { error = "Title must be max 35 characters long." });
+
 
         if (string.IsNullOrWhiteSpace(dto.ImageUrl))
             return BadRequest(new { error = "Image URL is required." });
@@ -74,7 +79,10 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
     /// <param name="pageSize"></param>
     /// <returns></returns>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PagedResult<ScamFlixEpisodeDto>>> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
         if (page <= 0) page = 1;
         if (pageSize <= 0 || pageSize > 100) pageSize = 10;
@@ -83,28 +91,39 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            string keyword = search.ToLower();
+            var keyword = search.ToLower();
             query = query.Where(e =>
                 e.Title.ToLower().Contains(keyword) ||
-                e.Tags.ToLower().Contains(keyword)
-            );
+                e.Tags.ToLower().Contains(keyword));
         }
 
         var totalItems = await query.CountAsync();
+        if (totalItems == 0)
+            return NotFound("No matching Scamflix episodes found.");
 
         var episodes = await query
             .OrderByDescending(e => e.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(e => new ScamFlixEpisodeDto
+            {
+                Id = e.Id,
+                Title = e.Title,
+                Tags = e.Tags,
+                ImageUrl = e.ImageUrl,
+                CreatedAt = e.CreatedAt
+            })
             .ToListAsync();
 
-        return Ok(new
+        var result = new PagedResult<ScamFlixEpisodeDto>
         {
-            totalItems,
-            page,
-            pageSize,
-            items = episodes
-        });
+            TotalItems = totalItems,
+            Page = page,
+            PageSize = pageSize,
+            Items = episodes
+        };
+
+        return Ok(result);
     }
 
 }
