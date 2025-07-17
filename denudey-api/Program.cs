@@ -1,10 +1,12 @@
-
-using Denudey.Api.Interfaces;
+﻿using Denudey.Api.Interfaces;
 using Denudey.Api.Services;
 using Denudey.DataAccess;
 using DenudeyApi.Seeders;
 using DenudeyApi.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace denudey_api
 {
@@ -18,12 +20,30 @@ namespace denudey_api
             builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
             // Add services to the container.
-            
+
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
 
+            // ✅ Add Authentication
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+                        )
+                    };
+                });
+
+            // ✅ Add Authorization
+            builder.Services.AddAuthorization();
 
             builder.Services.AddControllers();
             builder.Services.AddCors(options =>
@@ -36,7 +56,6 @@ namespace denudey_api
                 });
             });
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -49,9 +68,7 @@ namespace denudey_api
                 logger.LogInformation("Seeding roles...");
                 await RoleSeeder.SeedAsync(db);
                 logger.LogInformation("Seeding completed.");
-
             }
-
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment() || true)
@@ -62,9 +79,9 @@ namespace denudey_api
 
             app.UseCors(); // Must be placed before UseAuthorization and MapControllers
 
+            // ✅ Use authentication and authorization
+            app.UseAuthentication();
             app.UseAuthorization();
-
-          
 
             app.MapControllers();
 
