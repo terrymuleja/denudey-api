@@ -6,26 +6,26 @@ using System.Text;
 
 namespace Denudey.Api.Services
 {
-    public class TokenService : ITokenService
+    public class TokenService(IConfiguration config) : ITokenService
     {
-        private readonly IConfiguration _config;
-        public TokenService(IConfiguration config) => _config = config;
+        
 
-        public string GenerateAccessToken(string userId)
+        public string GenerateAccessToken(string userId, string role)
         {
             var claims = new[]
             {
-            new Claim(ClaimTypes.NameIdentifier, userId)
-        };
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.Role, role)
+            };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                _config["Jwt:Issuer"],
-                _config["Jwt:Audience"],
+                config["Jwt:Issuer"],
+                config["Jwt:Audience"],
                 claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:ExpiresInMinutes"])),
+                expires: DateTime.UtcNow.AddMinutes(double.Parse(config["Jwt:ExpiresInMinutes"])),
                 signingCredentials: creds
             );
 

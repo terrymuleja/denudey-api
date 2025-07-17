@@ -7,13 +7,16 @@ using Denudey.DataAccess.Entities;
 using Denudey.Api.Models.DTOs;
 using Denudey.Api.Interfaces;
 using DenudeyApi.Models.DTOs;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 
-namespace denudey_api.Controllers;
+namespace Denudey.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(ApplicationDbContext db, ITokenService tokenService) : ControllerBase
+public class AuthController(ApplicationDbContext db, ITokenService tokenService, IConfiguration configuration) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, [FromServices] ApplicationDbContext db)
@@ -60,33 +63,34 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Email == request.Email);
+
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid credentials" });
 
-        var existingToken = await db.RefreshTokens
-            .FirstOrDefaultAsync(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && t.Revoked == null);
-        var dbRole = user.UserRoles
-            .Select(ur => ur.Role.Name)
-            .FirstOrDefault(); // should never be null if role is properly assigned
+        var dbRole = user.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault();
+        var role = dbRole ?? "requester";
 
-        var role = dbRole ?? "requester"; // Default to "requester" if no role found    
-        if (existingToken is not null)
+        // 🔒 Revoke all active sessions from *other users* on this device
+        var otherUserTokensOnDevice = await db.RefreshTokens
+            .Where(t => t.DeviceId == request.DeviceId && t.UserId != user.Id && t.Revoked == null)
+            .ToListAsync();
+
+        foreach (var token in otherUserTokensOnDevice)
         {
-            existingToken.Revoked = DateTime.UtcNow;
-        }
-        else
-        {
-            // Clean up old tokens for this user/device
-            var oldTokens = await db.RefreshTokens
-                .Where(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && t.Revoked == null)
-                .ToListAsync();
-            foreach (var token in oldTokens)
-            {
-                token.Revoked = DateTime.UtcNow;
-            }
+            token.Revoked = DateTime.UtcNow;
         }
 
-        // 🆕 Create new refresh token
+        // 🔒 Revoke all active sessions for this user (on *any* device)
+        var userTokens = await db.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.Revoked == null)
+            .ToListAsync();
+
+        foreach (var token in userTokens)
+        {
+            token.Revoked = DateTime.UtcNow;
+        }
+
+        // 🆕 Create a new refresh token for this login session
         var refreshToken = new RefreshToken
         {
             Token = tokenService.GenerateRefreshToken(),
@@ -99,10 +103,11 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         await db.SaveChangesAsync();
 
         var response = new AuthResponse(
-            tokenService.GenerateAccessToken(user.Id.ToString()),
+            tokenService.GenerateAccessToken(user.Id.ToString(), role),
             refreshToken.Token,
             role
         );
+
         return Ok(response);
     }
 
@@ -111,7 +116,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
     {
         var storedToken = await db.RefreshTokens
             .Include(rt => rt.User)
+            .ThenInclude(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(rt => rt.Token == request.Token && rt.DeviceId == request.DeviceId);
+
 
         if (storedToken == null || storedToken.Revoked != null || storedToken.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Invalid or expired token" });
@@ -128,9 +136,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
         db.RefreshTokens.Add(newToken);
         await db.SaveChangesAsync();
+        var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester"; // fallback if null
 
         return Ok(new AuthTokenResponse(
-            tokenService.GenerateAccessToken(storedToken.User!.Id.ToString()),
+            tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
             newToken.Token
         ));
     }
@@ -260,6 +269,59 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         );
 
         return Ok(response);
+    }
+
+    [Authorize] // Require valid token
+    [HttpGet("validate")]
+    public IActionResult ValidateToken()
+    {
+        var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            return Unauthorized(new { valid = false, message = "Missing or invalid token format" });
+
+        var token = authHeader.Substring("Bearer ".Length).Trim();
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var secret = configuration["Jwt:Key"];
+        var issuer = configuration["Jwt:Issuer"];
+        var audience = configuration["Jwt:Audience"];
+
+        if (string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
+        {
+            return StatusCode(500, new { message = "Missing JWT configuration" });
+        }
+
+        var key = Encoding.UTF8.GetBytes(secret);
+        try
+        {
+            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = issuer,
+                ValidateAudience = true,
+                ValidAudience = audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            var jwtToken = (JwtSecurityToken)validatedToken;
+
+            var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+            var role = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
+
+            return Ok(new { valid = true, userId, role });
+        }
+        catch (SecurityTokenExpiredException)
+        {
+            return Unauthorized(new { valid = false, message = "Token expired" });
+        }
+        catch(Exception ex)
+        {
+            return Unauthorized(new { valid = false, message = "Token invalid" });
+        }
     }
 
 
