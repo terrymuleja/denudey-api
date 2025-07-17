@@ -23,7 +23,7 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
         var user = new ApplicationUser
         {
-            Username = request.Username,
+            Username = request.Email,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             DeviceId = request.DeviceId,
@@ -32,10 +32,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
         db.Users.Add(user);
         await db.SaveChangesAsync(); // Save user first to get the ID
-
+        var aRole = request.Role?.ToLowerInvariant() == "model" ? RoleNames.Model : RoleNames.Requester;
         // Assign default role: "model"
-        var role = await db.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.Model);
-        if (role is null) return Problem("Default role not found");
+        var role = await db.Roles.FirstOrDefaultAsync(r => r.Name == aRole);
+        if (role is null) return Problem("Selected role not found");
 
         db.UserRoles.Add(new UserRole
         {

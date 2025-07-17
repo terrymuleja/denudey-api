@@ -1,21 +1,24 @@
 ﻿using Denudey.DataAccess;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 
 namespace DenudeyApi.Services;
 
-public class TokenCleanupService(ApplicationDbContext db, ILogger<TokenCleanupService> logger)
+public class TokenCleanupService(IServiceScopeFactory scopeFactory, ILogger<TokenCleanupService> logger)
     : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             try
             {
                 var now = DateTime.UtcNow;
 
-                // Revoke expired, still-active tokens
                 var expired = await db.RefreshTokens
                     .Where(t => t.ExpiresAt < now && t.Revoked == null)
                     .ToListAsync(stoppingToken);
@@ -23,7 +26,6 @@ public class TokenCleanupService(ApplicationDbContext db, ILogger<TokenCleanupSe
                 foreach (var token in expired)
                     token.Revoked = DateTime.UtcNow;
 
-                // Delete revoked tokens older than 30 days
                 var oldRevoked = await db.RefreshTokens
                     .Where(t => t.Revoked != null && t.Revoked < now.AddDays(-30))
                     .ToListAsync(stoppingToken);
