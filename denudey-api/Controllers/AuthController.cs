@@ -21,6 +21,11 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         if (await db.Users.AnyAsync(u => u.Email == request.Email))
             return Conflict("Email already in use");
 
+
+        // Device already used
+        if (await db.Users.AnyAsync(u => u.DeviceId == request.DeviceId))
+            return Conflict(new { error = "This device has already been used to register an account" });
+
         var user = new ApplicationUser
         {
             Username = request.Email,
@@ -57,7 +62,11 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
         var existingToken = await db.RefreshTokens
             .FirstOrDefaultAsync(t => t.UserId == user.Id && t.DeviceId == request.DeviceId && t.Revoked == null);
+        var dbRole = user.UserRoles
+            .Select(ur => ur.Role.Name)
+            .FirstOrDefault(); // should never be null if role is properly assigned
 
+        var role = dbRole ?? "requester"; // Default to "requester" if no role found    
         if (existingToken is not null)
         {
             existingToken.Revoked = DateTime.UtcNow;
@@ -88,7 +97,8 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
 
         var response = new AuthResponse(
             tokenService.GenerateAccessToken(user.Id.ToString()),
-            refreshToken.Token
+            refreshToken.Token,
+            role
         );
         return Ok(response);
     }
@@ -116,7 +126,7 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService)
         db.RefreshTokens.Add(newToken);
         await db.SaveChangesAsync();
 
-        return Ok(new AuthResponse(
+        return Ok(new AuthTokenResponse(
             tokenService.GenerateAccessToken(storedToken.User!.Id.ToString()),
             newToken.Token
         ));
