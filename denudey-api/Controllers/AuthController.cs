@@ -98,14 +98,19 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService,
             DeviceId = request.DeviceId,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         };
-
+        var name = user.Username;
+        var email = user.Email;
         db.RefreshTokens.Add(refreshToken);
         await db.SaveChangesAsync();
-
+        var id = user.Id;
         var response = new AuthResponse(
             tokenService.GenerateAccessToken(user.Id.ToString(), role),
             refreshToken.Token,
-            role
+            role,
+            name,
+            email,
+            id
+            
         );
 
         return Ok(response);
