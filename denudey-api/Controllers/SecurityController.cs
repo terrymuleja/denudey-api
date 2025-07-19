@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Denudey.Api.Models.DTOs;
 using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
+using Denudey.Api.Domain.Entities;
 
 namespace Denudey.Api.Controllers
 {
@@ -195,6 +196,76 @@ namespace Denudey.Api.Controllers
 
         [HttpGet("test")]
         public IActionResult Test() => Ok("You are authenticated.");
+
+
+        [HttpPut("profile/privacy")]
+        public async Task<IActionResult> UpdatePrivacy([FromBody] UpdatePrivacyDto dto)
+        {
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(id))
+                return Unauthorized();
+            if (string.IsNullOrEmpty(id)) return Unauthorized();
+
+            var userId = Guid.Parse(id);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return NotFound();
+
+            user.IsPrivate = dto.IsPrivate;
+            await db.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPut("profile/role")]
+        public async Task<IActionResult> UpdateRole([FromBody] UpdateRoleDto dto)
+        {
+            var normalizedRole = dto.Role?.ToLower();
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(id))
+                return Unauthorized();
+            if (string.IsNullOrEmpty(id)) return Unauthorized();
+
+            if (normalizedRole != "model" && normalizedRole != "requester")
+                return BadRequest(new { error = "Role must be 'Model' or 'Requester'." });
+
+            var userId = Guid.Parse(id);
+
+            var user = await db.Users
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return NotFound();
+
+            using var transaction = await db.Database.BeginTransactionAsync();
+
+            try
+            {
+                // Remove all existing roles
+                db.UserRoles.RemoveRange(user.UserRoles);
+
+                // Check if the role already exists
+                var existingRole = await db.Roles
+                    .FirstOrDefaultAsync(r => r.Name.ToLower() == normalizedRole);
+                if (existingRole == null)
+                    return NotFound($"Role {dto.Role}");
+                    // Add new role
+                    user.UserRoles.Add(new UserRole
+                {
+                    UserId = userId,
+                    Role = existingRole
+                });
+
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new { error = "Failed to update role.", detail = ex.Message });
+            }
+
+            return Ok();
+        }
+
     }
 
 }
