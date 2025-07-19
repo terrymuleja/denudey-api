@@ -51,7 +51,6 @@ namespace Denudey.Api.Services.Cloudinary
                 return false;
             }
         }
-n
 
         private string ExtractPublicId(string imageUrl)
         {
