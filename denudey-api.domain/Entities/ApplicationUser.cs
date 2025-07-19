@@ -26,7 +26,7 @@ namespace Denudey.Api.Domain.Entities
 
         public string? ProfileImageUrl { get; set; } // Cloudinary URL
 
-
+        public bool IsPrivate { get; set; }
 
     }
 }

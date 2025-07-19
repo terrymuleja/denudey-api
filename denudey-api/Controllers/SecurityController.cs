@@ -144,7 +144,8 @@ namespace Denudey.Api.Controllers
                 user.UserRoles.Select(ur => ur.Role.Name).ToList(),
                 CountryCode: user.CountryCode,
                 Telephone: user.Phone,
-                ProfileImageUrl: user.ProfileImageUrl
+                ProfileImageUrl: user.ProfileImageUrl,
+                IsPrivate: user.IsPrivate
             );
 
             return Ok(response);

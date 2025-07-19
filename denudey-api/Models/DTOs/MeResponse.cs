@@ -10,5 +10,6 @@ public record MeResponse(
     List<string> Roles,
     string CountryCode,
     string Telephone,
-    string? ProfileImageUrl
+    string? ProfileImageUrl,
+    bool IsPrivate = false
 );
