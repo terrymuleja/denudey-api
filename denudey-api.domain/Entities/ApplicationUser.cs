@@ -21,6 +21,12 @@ namespace Denudey.Api.Domain.Entities
 
         public ICollection<ScamflixEpisode> Episodes { get; set; } = new List<ScamflixEpisode>();
 
+        public string CountryCode { get; set; } = string.Empty; // e.g., "+32"
+        public string Phone { get; set; } = string.Empty; // e.g., "478123456"
+
+        public string? ProfileImageUrl { get; set; } // Cloudinary URL
+
+
 
     }
 }

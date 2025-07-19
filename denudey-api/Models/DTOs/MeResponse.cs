@@ -6,5 +6,8 @@ public record MeResponse(
     string Email,
     string? CurrentDeviceId,
     DateTime? CurrentTokenExpiresAt,
-    List<string> Roles
+    List<string> Roles,
+    string CountryCode,
+    string Telephone,
+    string? ProfileImageUrl
 );

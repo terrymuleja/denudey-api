@@ -271,7 +271,10 @@ public class AuthController(ApplicationDbContext db, ITokenService tokenService,
             user.Email,
             user.DeviceId,
             refreshToken?.ExpiresAt,
-            user.UserRoles.Select(ur => ur.Role.Name).ToList()
+            user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+            CountryCode: user.CountryCode,
+            Telephone: user.Phone,
+            ProfileImageUrl: user.ProfileImageUrl
         );
 
         return Ok(response);
