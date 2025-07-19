@@ -115,12 +115,14 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
             })
             .ToListAsync();
 
+        var hasNextPage = (page * pageSize) < totalItems;
         var result = new PagedResult<ScamFlixEpisodeDto>
         {
             TotalItems = totalItems,
             Page = page,
             PageSize = pageSize,
-            Items = episodes
+            Items = episodes,
+            HasNextPage = hasNextPage
         };
 
         return Ok(result);
