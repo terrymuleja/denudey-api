@@ -54,12 +54,35 @@ namespace Denudey.Api.Services.Cloudinary
 
         private string ExtractPublicId(string imageUrl)
         {
-            var uri = new Uri(imageUrl);
-            var segments = uri.AbsolutePath.Split('/');
-            var fileName = Path.GetFileNameWithoutExtension(segments.Last());
-            var folderPath = string.Join("/", segments.Skip(segments.ToList().FindIndex(s => s == "upload") + 1).Take(segments.Length - 2));
-            return string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
+            try
+            {
+                var uri = new Uri(imageUrl);
+                var path = uri.AbsolutePath;
+
+                // Remove leading / and /upload/ prefix
+                var parts = path.Split("/upload/");
+                if (parts.Length != 2)
+                    return null;
+
+                var publicPart = parts[1];
+
+                // Remove version prefix (v1234567890/)
+                var versionAndRest = publicPart.Split('/');
+                if (versionAndRest.Length < 2)
+                    return null;
+
+                var withoutVersion = string.Join('/', versionAndRest.Skip(1));
+                var publicId = Path.ChangeExtension(withoutVersion, null); // removes .png
+
+                return publicId;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to extract publicId from imageUrl: {ImageUrl}", imageUrl);
+                return null;
+            }
         }
+
 
 
     }

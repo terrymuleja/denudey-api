@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Denudey.Api.Services.Cloudinary;
+using Denudey.Api.Services.Cloudinary.Interfaces;
 using Microsoft.OpenApi.Models;
 using Denudey.Api.Services.Implementations;
 
@@ -32,6 +33,7 @@ namespace denudey_api
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
             builder.Services.AddScoped<IEpisodesService, EpisodesService>();
+            builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 
             // ✅ Add Authentication

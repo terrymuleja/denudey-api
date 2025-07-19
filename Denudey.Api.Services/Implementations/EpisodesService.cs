@@ -64,7 +64,7 @@ namespace Denudey.Api.Services.Implementations
             };
         }
 
-        public async Task<bool> DeleteEpisodeAsync(Guid episodeId, Guid userId, string role)
+        public async Task<bool> DeleteEpisodeAsync(int episodeId, Guid userId, string role)
         {
             var episode = await db.ScamflixEpisodes.FindAsync(episodeId);
             if (episode == null)

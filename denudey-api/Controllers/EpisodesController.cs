@@ -87,8 +87,8 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         return Ok(result);
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> DeleteEpisode(Guid id)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteEpisode(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
