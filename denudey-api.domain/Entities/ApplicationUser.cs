@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Denudey.DataAccess.Entities
+namespace Denudey.Api.Domain.Entities
 {
     public class ApplicationUser
     {
@@ -18,6 +18,8 @@ namespace Denudey.DataAccess.Entities
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+        public ICollection<ScamflixEpisode> Episodes { get; set; } = new List<ScamflixEpisode>();
 
 
     }

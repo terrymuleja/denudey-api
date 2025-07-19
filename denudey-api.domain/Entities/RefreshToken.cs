@@ -1,4 +1,4 @@
-﻿namespace Denudey.DataAccess.Entities;
+﻿namespace Denudey.Api.Domain.Entities;
 
 public class RefreshToken
 {

@@ -47,4 +47,6 @@ obj/
 *.suo
 
 # EF Core
-Migrations/
+!Migrations/
+!*/Migrations/
+

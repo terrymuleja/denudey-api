@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Denudey.DataAccess;
-using Denudey.DataAccess.Entities;
 using Denudey.Api.Models.DTOs;
 using Denudey.Api.Interfaces;
 using DenudeyApi.Models.DTOs;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Denudey.Api.Domain.Entities;
+using Denudey.Api.Domain.Models;
 
 
 namespace Denudey.Api.Controllers;

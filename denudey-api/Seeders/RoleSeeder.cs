@@ -1,5 +1,5 @@
-﻿using Denudey.DataAccess;
-using Denudey.DataAccess.Entities;
+﻿using Denudey.Api.Domain.Entities;
+using Denudey.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
 namespace DenudeyApi.Seeders;

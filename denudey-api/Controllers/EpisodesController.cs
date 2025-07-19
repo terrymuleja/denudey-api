@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Denudey.Api.Domain;
+using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Models;
 using Denudey.Api.Models.DTOs;
@@ -37,12 +38,13 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.ImageUrl))
             return BadRequest("Title and image URL are required.");
 
+        var daId = new Guid(userId);
         var episode = new ScamflixEpisode
         {
             Title = dto.Title,
             Tags = string.Join(",", dto.Tags ?? []),
             ImageUrl = dto.ImageUrl,
-            CreatedBy = userId ?? "anonymous", // Replace with real user ID if needed
+            CreatedBy = daId, // Replace with real user ID if needed
             CreatedAt = DateTime.UtcNow
         };
 
@@ -58,14 +60,25 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value;
-
+        var id = new Guid(userId);
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { error = "User ID not found in token." });
 
         var episodes = await db.ScamflixEpisodes
-            .Where(e => e.CreatedBy == userId)
+            .Where(e => e.CreatedBy == id)
+            .Include(e => e.Creator)
             .OrderByDescending(e => e.CreatedAt)
-            .ToListAsync();
+            .Select(e => new ScamFlixEpisodeDto
+            {
+                Id = e.Id,
+                Title = e.Title,
+                Tags = e.Tags,
+                ImageUrl = e.ImageUrl,
+                CreatedAt = e.CreatedAt,
+                CreatedBy = e.Creator.Username, // or Email if preferred
+                CreatorId = e.Creator.Id.ToString() // or e.Creator.Email if preferred
+            })
+            .ToListAsync(); ;
 
         return Ok(episodes);
     }
@@ -102,6 +115,7 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
             return NotFound("No matching Scamflix episodes found.");
 
         var episodes = await query
+            .Include(e => e.Creator) // ensures e.Creator is populated
             .OrderByDescending(e => e.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -111,9 +125,12 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
                 Title = e.Title,
                 Tags = e.Tags,
                 ImageUrl = e.ImageUrl,
-                CreatedAt = e.CreatedAt
+                CreatedAt = e.CreatedAt,
+                CreatedBy = e.Creator.Username, // or .Email
+                CreatorId = e.Creator.Id.ToString() // or e.Creator.Email if preferred
             })
             .ToListAsync();
+
 
         var hasNextPage = (page * pageSize) < totalItems;
         var result = new PagedResult<ScamFlixEpisodeDto>

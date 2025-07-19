@@ -1,6 +1,6 @@
 ﻿using System.Data;
 using Denudey.Api.Domain.Entities;
-using Denudey.DataAccess.Entities;
+using Denudey.Api.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.DataAccess
@@ -29,6 +29,18 @@ namespace Denudey.DataAccess
                 new Role { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = RoleNames.Model },
                 new Role { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Name = RoleNames.Requester }
             );
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.ToTable("Users");
+                entity.HasKey(u => u.Id);
+
+                entity.Property(u => u.Username).IsRequired().HasMaxLength(256);
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(256);
+                entity.Property(u => u.PasswordHash).IsRequired();
+                entity.Property(u => u.CreatedAt).HasDefaultValueSql("NOW()");
+
+            });
+            
 
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
@@ -46,6 +58,10 @@ namespace Denudey.DataAccess
             modelBuilder.Entity<ScamflixEpisode>(entity =>
             {
                 entity.ToTable("ScamflixEpisodes");
+                entity.HasOne(e => e.Creator)
+                    .WithMany(u => u.Episodes) // or .WithMany(u => u.Episodes) if you want reverse navigation
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Cascade);
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.ImageUrl).IsRequired();

@@ -1,4 +1,4 @@
-﻿namespace Denudey.Api.Models.DTOs
+﻿namespace Denudey.Api.Domain.DTOs
 {
     public class ScamFlixEpisodeDto
     {
@@ -7,5 +7,8 @@
         public string Tags { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+
+        public string? CreatedBy { get; set; }
+        public string? CreatorId { get; set; }
     }
 }
