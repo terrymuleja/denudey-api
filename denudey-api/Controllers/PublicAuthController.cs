@@ -14,7 +14,7 @@ using Denudey.Api.Domain.Models;
 
 
 namespace Denudey.Api.Controllers;
-[Authorize]
+[AllowAnonymous]
 [ApiController]
 [Route("api/auth")]
 public class PublicAuthController(ApplicationDbContext db, ITokenService tokenService, IConfiguration configuration) : ControllerBase

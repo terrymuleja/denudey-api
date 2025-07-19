@@ -27,6 +27,7 @@ namespace denudey_api
             builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
             // Add services to the container.
+            builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

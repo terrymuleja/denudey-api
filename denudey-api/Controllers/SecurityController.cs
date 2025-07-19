@@ -6,13 +6,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Denudey.Api.Models.DTOs;
+using Denudey.Api.Services.Cloudinary;
+using Denudey.Api.Services.Cloudinary.Interfaces;
 
 namespace Denudey.Api.Controllers
 {
     [Authorize]
-    [Route("api/auth/secure")]
+    [Route("api/secure/auth")]
     [ApiController]
-    public class SecurityController (ApplicationDbContext db) : ControllerBase
+    public class SecurityController (ApplicationDbContext db, ICloudinaryService cloudinaryService) : ControllerBase
     {
 
 
@@ -107,11 +109,12 @@ namespace Denudey.Api.Controllers
             [FromServices] ApplicationDbContext db,
             [FromServices] IHttpContextAccessor httpContextAccessor)
         {
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-            if (userIdClaim == null) return Unauthorized();
+            var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? User.FindFirst("sub")?.Value;
 
-            var userId = Guid.Parse(userIdClaim.Value);
+            if (id == null) return Unauthorized();
 
+            var userId = Guid.Parse(id);
             var user = await db.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -158,14 +161,39 @@ namespace Denudey.Api.Controllers
             var user = await db.Users.FindAsync(Guid.Parse(userId));
             if (user == null)
                 return NotFound();
-
+            user.CountryCode = dto.CountryCode;
             user.Phone = dto.Phone;
             user.ProfileImageUrl = dto.ProfileImageUrl;
 
             await db.SaveChangesAsync();
             return Ok();
         }
+
+        [HttpDelete("me/image")]
+        public async Task<IActionResult> DeleteProfileImage()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var user = await db.Users.FindAsync(Guid.Parse(userId));
+            if (user == null || string.IsNullOrEmpty(user.ProfileImageUrl))
+                return NotFound();
+
+            var deleted = await cloudinaryService.DeleteImageFromCloudinary(user.ProfileImageUrl);
+            if (deleted)
+            {
+                user.ProfileImageUrl = null;
+                await db.SaveChangesAsync();
+                return Ok();
+            }
+
+            return BadRequest("Failed to delete image.");
+        }
+
+
         [HttpGet("test")]
         public IActionResult Test() => Ok("You are authenticated.");
     }
+
 }
