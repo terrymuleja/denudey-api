@@ -4,6 +4,7 @@ using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Models;
 using Denudey.Api.Models.DTOs;
+using Denudey.Api.Services;
 using Denudey.DataAccess;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ namespace Denudey.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/episodes")]
-public class EpisodesController(ApplicationDbContext db) : ControllerBase
+public class EpisodesController(ApplicationDbContext db, IEpisodesService episodesService) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
@@ -56,31 +57,16 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
 
     
     [HttpGet("mine")]
-    public async Task<IActionResult> GetMyEpisodes()
+    public async Task<IActionResult> GetMyEpisodes([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value;
-        var id = new Guid(userId);
-        if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { error = "User ID not found in token." });
 
-        var episodes = await db.ScamflixEpisodes
-            .Where(e => e.CreatedBy == id)
-            .Include(e => e.Creator)
-            .OrderByDescending(e => e.CreatedAt)
-            .Select(e => new ScamFlixEpisodeDto
-            {
-                Id = e.Id,
-                Title = e.Title,
-                Tags = e.Tags,
-                ImageUrl = e.ImageUrl,
-                CreatedAt = e.CreatedAt,
-                CreatedBy = e.Creator.Username, // or Email if preferred
-                CreatorId = e.Creator.Id.ToString() // or e.Creator.Email if preferred
-            })
-            .ToListAsync(); ;
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var id))
+            return Unauthorized(new { error = "Invalid user ID." });
 
-        return Ok(episodes);
+        var result = await episodesService.GetEpisodesAsync(id, null, page, pageSize);
+        return Ok(result);
     }
 
     /// <summary>
@@ -97,52 +83,28 @@ public class EpisodesController(ApplicationDbContext db) : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        if (page <= 0) page = 1;
-        if (pageSize <= 0 || pageSize > 100) pageSize = 10;
-
-        var query = db.ScamflixEpisodes.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var keyword = search.ToLower();
-            query = query.Where(e =>
-                e.Title.ToLower().Contains(keyword) ||
-                e.Tags.ToLower().Contains(keyword));
-        }
-
-        var totalItems = await query.CountAsync();
-        if (totalItems == 0)
-            return NotFound("No matching Scamflix episodes found.");
-
-        var episodes = await query
-            .Include(e => e.Creator) // ensures e.Creator is populated
-            .OrderByDescending(e => e.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(e => new ScamFlixEpisodeDto
-            {
-                Id = e.Id,
-                Title = e.Title,
-                Tags = e.Tags,
-                ImageUrl = e.ImageUrl,
-                CreatedAt = e.CreatedAt,
-                CreatedBy = e.Creator.Username, // or .Email
-                CreatorId = e.Creator.Id.ToString() // or e.Creator.Email if preferred
-            })
-            .ToListAsync();
-
-
-        var hasNextPage = (page * pageSize) < totalItems;
-        var result = new PagedResult<ScamFlixEpisodeDto>
-        {
-            TotalItems = totalItems,
-            Page = page,
-            PageSize = pageSize,
-            Items = episodes,
-            HasNextPage = hasNextPage
-        };
-
+        var result = await episodesService.GetEpisodesAsync(null, search, page, pageSize);
         return Ok(result);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteEpisode(Guid id)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var guid))
+            return Unauthorized(new { error = "Invalid user ID." });
+
+        if (string.IsNullOrWhiteSpace(role))
+            return Unauthorized(new { error = "Role missing in token." });
+
+        var success = await episodesService.DeleteEpisodeAsync(id, guid, role.ToLower());
+        if (!success)
+            return Forbid("Not authorized or episode not found.");
+
+        return NoContent();
+    }
+
 
 }

@@ -4,15 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
+using Denudey.Api.Domain.Models;
 using Denudey.Api.Models;
+using Denudey.Api.Services.Cloudinary.Interfaces;
 using Denudey.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Api.Services.Implementations
 {
-    public class EpisodesService (ApplicationDbContext db) : IEpisodesService
+    public class EpisodesService (ApplicationDbContext db, ICloudinaryService cloudinaryService) : IEpisodesService
     {
-        private readonly ApplicationDbContext db;
 
         public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(Guid? createdBy, string? search, int page, int pageSize)
         {
@@ -62,6 +63,28 @@ namespace Denudey.Api.Services.Implementations
                 HasNextPage = (page * pageSize) < totalItems
             };
         }
+
+        public async Task<bool> DeleteEpisodeAsync(Guid episodeId, Guid userId, string role)
+        {
+            var episode = await db.ScamflixEpisodes.FindAsync(episodeId);
+            if (episode == null)
+                return false;
+
+            // Only allow if admin or owner
+            if (role != RoleNames.Admin && episode.CreatedBy != userId)
+                return false;
+
+            db.ScamflixEpisodes.Remove(episode);
+            await db.SaveChangesAsync();
+
+
+
+            //Cloudinary deletion
+            await cloudinaryService.DeleteImageFromCloudinary(episode.ImageUrl);
+
+            return true;
+        }
+
     }
 
 }

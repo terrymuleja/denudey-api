@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Denudey.Api.Services.Cloudinary;
 using Microsoft.OpenApi.Models;
+using Denudey.Api.Services.Implementations;
 
 namespace denudey_api
 {
@@ -16,6 +18,9 @@ namespace denudey_api
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.Configure<CloudinarySettings>(
+                builder.Configuration.GetSection("Cloudinary"));
 
             // Railway needs the app to listen on port 8080
             builder.WebHost.UseUrls("http://0.0.0.0:8080");
@@ -26,6 +31,8 @@ namespace denudey_api
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
+            builder.Services.AddScoped<IEpisodesService, EpisodesService>();
+
 
             // ✅ Add Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "denudey-api.domain", "denud
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.Api.Services", "Denudey.Api.Services\Denudey.Api.Services.csproj", "{A591F441-2731-4EED-A69A-E89A98EBCA17}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.Api.Services.Cloudinary", "Denudey.Api.Services.Cloudinary\Denudey.Api.Services.Cloudinary.csproj", "{1682B974-C4EE-4480-A573-758F8D79F40C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{A591F441-2731-4EED-A69A-E89A98EBCA17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A591F441-2731-4EED-A69A-E89A98EBCA17}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A591F441-2731-4EED-A69A-E89A98EBCA17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1682B974-C4EE-4480-A573-758F8D79F40C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1682B974-C4EE-4480-A573-758F8D79F40C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1682B974-C4EE-4480-A573-758F8D79F40C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1682B974-C4EE-4480-A573-758F8D79F40C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
