@@ -128,10 +128,13 @@ namespace Denudey.Api.Controllers
                 .Where(rt => rt.UserId == user.Id && rt.Token == accessToken)
                 .OrderByDescending(rt => rt.ExpiresAt)
                 .FirstOrDefaultAsync();
-
+            var role = user.UserRoles
+                .Select(ur => ur.Role.Name)
+                .FirstOrDefault() ?? "requester"; // Fallback to requester if no roles found
             var response = new MeResponse(
                 user.Id,
                 user.Username,
+                role,
                 user.Email,
                 user.DeviceId,
                 refreshToken?.ExpiresAt,

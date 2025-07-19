@@ -3,6 +3,7 @@
 public record MeResponse(
     Guid Id,
     string Username,
+    string Role,
     string Email,
     string? CurrentDeviceId,
     DateTime? CurrentTokenExpiresAt,
