@@ -16,7 +16,7 @@ namespace Denudey.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/episodes")]
-public class EpisodesController(ApplicationDbContext db, IEpisodesService episodesService) : ControllerBase
+public class EpisodesController(ApplicationDbContext db, IEpisodesService episodesService) : DenudeyControlerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
@@ -101,14 +101,6 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         return NoContent();
     }
 
-    private Guid GetUserId()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var guid))
-            throw new UnauthorizedAccessException("Invalid user ID.");
-        return guid;
-    }
 
     
     [HttpPost("{id}/like")]

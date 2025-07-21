@@ -10,17 +10,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Api.Services.Implementations
 {
+    
     public class ProductsService(ApplicationDbContext db) : IProductsService
     {
-        public async Task<int> CountActiveProductsAsync(Guid userId) =>
-            await db.Products.CountAsync(p => p.CreatedBy == userId && !p.IsExpired);
+        public async Task<int> CountActiveProductsAsync(Guid userId)
+        {
+            return await db.Products.CountAsync(p => p.CreatedBy == userId && !p.IsExpired);
+        }
 
-        public async Task<Product?> GetProductAsync(Guid id, Guid userId) =>
-            await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.CreatedBy == userId);
+        public async Task<Product?> GetProductAsync(Guid id, Guid userId)
+        {
+            return await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.CreatedBy == userId);
+        }
 
         public async Task<bool> CanUnpublishAsync(Guid productId, Guid userId)
         {
-            return !await db.Demands.AnyAsync(d => d.ProductId == productId && d.Product.CreatedBy == userId);
+            return !await db.Demands.AnyAsync(d => d.ProductId == productId && d.RequestedBy == userId);
         }
 
         public async Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId)
@@ -42,7 +47,7 @@ namespace Denudey.Api.Services.Implementations
                 BodyPart = dto.BodyPart,
                 DeliveryOptions = dto.DeliveryOptions,
                 FeePerDelivery = fee,
-                CreatedBy = userId,
+                CreatedBy = userId
             };
 
             db.Products.Add(product);
@@ -63,6 +68,69 @@ namespace Denudey.Api.Services.Implementations
 
             await db.SaveChangesAsync();
         }
+
+        public async Task PublishProductAsync(Guid id, Guid userId)
+        {
+            var product = await GetProductAsync(id, userId)
+                ?? throw new KeyNotFoundException("Product not found.");
+
+            if (product.IsPublished)
+                throw new InvalidOperationException("Already published.");
+
+            product.IsPublished = true;
+            product.ModifiedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UnpublishProductAsync(Guid id, Guid userId)
+        {
+            var product = await GetProductAsync(id, userId)
+                ?? throw new KeyNotFoundException("Product not found.");
+
+            if (!product.IsPublished)
+                throw new InvalidOperationException("Product is not published.");
+
+            var canUnpublish = await CanUnpublishAsync(id, userId);
+            if (!canUnpublish)
+                throw new InvalidOperationException("Cannot unpublish: demand exists.");
+
+            product.IsPublished = false;
+            product.ModifiedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        public async Task ExpireProductAsync(Guid id, Guid userId)
+        {
+            var product = await GetProductAsync(id, userId)
+                ?? throw new KeyNotFoundException("Product not found.");
+
+            if (product.IsExpired)
+                throw new InvalidOperationException("Already expired.");
+
+            product.IsExpired = true;
+            product.ModifiedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
+        public async Task<List<ProductSummaryDto>> GetMyProductsAsync(Guid userId)
+        {
+            return await db.Products
+                .Where(p => p.CreatedBy == userId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new ProductSummaryDto
+                {
+                    Id = p.Id,
+                    ProductName = p.ProductName,
+                    BodyPart = p.BodyPart,
+                    MainPhotoUrl = p.MainPhotoUrl,
+                    IsPublished = p.IsPublished,
+                    IsExpired = p.IsExpired,
+                    CreatedAt = p.CreatedAt,
+                    ModifiedAt = p.ModifiedAt
+                })
+                .ToListAsync();
+        }
     }
+
 
 }
