@@ -115,7 +115,7 @@ namespace Denudey.Api.Services.Implementations
             return await db.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> AddViewAsync(int episodeId, Guid userId)
+        public async Task<bool> TrackViewAsync(int episodeId, Guid userId)
         {
             db.EpisodeViews.Add(new EpisodeView
             {

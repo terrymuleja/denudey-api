@@ -101,12 +101,6 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         return NoContent();
     }
 
-    [HttpPost("{id}/like")]
-    public async Task<IActionResult> LikeEpisode(int id)
-    {
-
-        return Ok();
-    }
     private Guid GetUserId()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -116,21 +110,21 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         return guid;
     }
 
-    [Authorize]
-    [HttpPost("like/{episodeId}")]
-    public async Task<IActionResult> ToggleLike(int episodeId)
+    
+    [HttpPost("{id}/like")]
+    public async Task<IActionResult> ToggleLike(int id)
     {
         var userId = GetUserId();
-        var result = await episodesService.ToggleLikeAsync(episodeId, userId);
+        var result = await episodesService.ToggleLikeAsync(id, userId);
         return result ? Ok() : BadRequest();
     }
 
-    [Authorize]
-    [HttpPost("view/{episodeId}")]
-    public async Task<IActionResult> AddView(int episodeId)
+    
+    [HttpPost("{1}/view")]
+    public async Task<IActionResult> TrackView(int id)
     {
         var userId = GetUserId();
-        var result = await episodesService.AddViewAsync(episodeId, userId);
+        var result = await episodesService.TrackViewAsync(id, userId);
         return result ? Ok() : BadRequest();
     }
 
