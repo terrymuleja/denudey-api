@@ -12,18 +12,18 @@ namespace Denudey.Api.Services.Implementations
 {
     public class ProductsService(ApplicationDbContext db) : IProductsService
     {
-        public async Task<int> CountActiveProductsAsync(string userId) =>
+        public async Task<int> CountActiveProductsAsync(Guid userId) =>
             await db.Products.CountAsync(p => p.CreatedBy == userId && !p.IsExpired);
 
-        public async Task<Product?> GetProductAsync(Guid id, string userId) =>
+        public async Task<Product?> GetProductAsync(Guid id, Guid userId) =>
             await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.CreatedBy == userId);
 
-        public async Task<bool> CanUnpublishAsync(Guid productId, string userId)
+        public async Task<bool> CanUnpublishAsync(Guid productId, Guid userId)
         {
             return !await db.Demands.AnyAsync(d => d.ProductId == productId && d.Product.CreatedBy == userId);
         }
 
-        public async Task<Product> CreateProductAsync(CreateProductDto dto, string userId)
+        public async Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId)
         {
             var count = await CountActiveProductsAsync(userId);
             if (count >= 10)

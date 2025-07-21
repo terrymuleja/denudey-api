@@ -13,7 +13,7 @@ namespace Denudey.Api.Domain.Entities
         public Guid ProductId { get; set; }
         public Product Product { get; set; } = null!;
 
-        public string RequestedBy { get; set; } = string.Empty; // user ID of the requester
+        public Guid RequestedBy { get; set; } // user ID of the requester
         public ApplicationUser Requester { get; set; } = null!; // User who made the request
         public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
 

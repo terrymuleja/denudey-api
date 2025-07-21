@@ -10,10 +10,10 @@ namespace Denudey.Api.Services
 {
     public interface IProductsService
     {
-        Task<int> CountActiveProductsAsync(string userId);
-        Task<Product?> GetProductAsync(Guid id, string userId);
-        Task<bool> CanUnpublishAsync(Guid productId, string userId);
-        Task<Product> CreateProductAsync(CreateProductDto dto, string userId);
+        Task<int> CountActiveProductsAsync(Guid userId);
+        Task<Product?> GetProductAsync(Guid id, Guid userId);
+        Task<bool> CanUnpublishAsync(Guid productId, Guid userId);
+        Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId);
         Task UpdateProductAsync(Product product, CreateProductDto dto);
     }
 

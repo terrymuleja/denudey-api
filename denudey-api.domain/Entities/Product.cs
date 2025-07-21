@@ -24,7 +24,7 @@ namespace Denudey.Api.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
 
-        public string CreatedBy { get; set; }
+        public Guid CreatedBy { get; set; }
         public ApplicationUser Creator { get; set; } = null!; // User ID of the model who created this product
 
         public List<Demand> Demands { get; set; } = new();  // many demands reference this product
