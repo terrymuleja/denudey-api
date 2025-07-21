@@ -35,6 +35,7 @@ namespace denudey_api
             builder.Services.AddHostedService<TokenCleanupService>();
             builder.Services.AddScoped<IEpisodesService, EpisodesService>();
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+            builder.Services.AddScoped<IProductsService, ProductsService>();
 
 
             // ✅ Add Authentication

@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Text.Json;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,10 @@ namespace Denudey.DataAccess
         public DbSet<EpisodeLike> EpisodeLikes { get; set; }
 
         public DbSet<EpisodeView> EpisodeViews { get; set; }
+
+        public DbSet<Product> Products => Set<Product>();
+
+        public DbSet<Demand> Demands => Set<Demand>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -92,6 +97,44 @@ namespace Denudey.DataAccess
                 .WithMany(e => e.Views)
                 .HasForeignKey(v => v.EpisodeId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            var jsonOptions = new JsonSerializerOptions();
+
+            modelBuilder.Entity<Product>().Property(p => p.Tags)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, jsonOptions),
+                    v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new()
+                );
+
+            modelBuilder.Entity<Product>().Property(p => p.SecondaryPhotoUrls)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, jsonOptions),
+                    v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new()
+                );
+
+            modelBuilder.Entity<Product>().Property(p => p.DeliveryOptions)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, jsonOptions),
+                    v => JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new()
+                );
+
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Creator)
+                .WithMany(u => u.Products)
+                .HasForeignKey(p => p.CreatedBy)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Demand>()
+                .HasOne(d => d.Requester)
+                .WithMany(u => u.Demands)
+                .HasForeignKey(d => d.RequestedBy)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Demand>()
+                .HasOne(d => d.Product)
+                .WithMany(p => p.Demands)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict); // keep Product even if Demand is deleted
         }
 
 
