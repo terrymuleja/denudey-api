@@ -5,6 +5,7 @@ using Denudey.Api.Domain.Entities;
 using Denudey.Api.Models;
 using Denudey.Api.Models.DTOs;
 using Denudey.Api.Services;
+using Denudey.Api.Services.Implementations;
 using Denudey.DataAccess;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,22 +31,19 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         if (string.IsNullOrWhiteSpace(dto.ImageUrl))
             return BadRequest(new { error = "Image URL is required." });
 
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value;
+       
 
-        if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized(new { error = "User ID not found in token." });
+        var userId = GetUserId();
 
         if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.ImageUrl))
             return BadRequest("Title and image URL are required.");
 
-        var daId = new Guid(userId);
         var episode = new ScamflixEpisode
         {
             Title = dto.Title,
             Tags = string.Join(",", dto.Tags ?? []),
             ImageUrl = dto.ImageUrl,
-            CreatedBy = daId, // Replace with real user ID if needed
+            CreatedBy = userId, // Replace with real user ID if needed
             CreatedAt = DateTime.UtcNow
         };
 
@@ -62,13 +60,9 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("sub")?.Value;
+        var userId = GetUserId();
 
-        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var id))
-            return Unauthorized(new { error = "Invalid user ID." });
-
-        var result = await episodesService.GetEpisodesAsync(id, search, page, pageSize);
+        var result = await episodesService.GetEpisodesAsync(userId, search, page, pageSize);
         return Ok(result);
     }
 
@@ -94,20 +88,50 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteEpisode(int id)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var userId = GetUserId();
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
-
-        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var guid))
-            return Unauthorized(new { error = "Invalid user ID." });
 
         if (string.IsNullOrWhiteSpace(role))
             return Unauthorized(new { error = "Role missing in token." });
 
-        var success = await episodesService.DeleteEpisodeAsync(id, guid, role.ToLower());
+        var success = await episodesService.DeleteEpisodeAsync(id, userId, role.ToLower());
         if (!success)
             return Forbid("Not authorized or episode not found.");
 
         return NoContent();
+    }
+
+    [HttpPost("{id}/like")]
+    public async Task<IActionResult> LikeEpisode(int id)
+    {
+
+        return Ok();
+    }
+    private Guid GetUserId()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var guid))
+            throw new UnauthorizedAccessException("Invalid user ID.");
+        return guid;
+    }
+
+    [Authorize]
+    [HttpPost("like/{episodeId}")]
+    public async Task<IActionResult> ToggleLike(int episodeId)
+    {
+        var userId = GetUserId();
+        var result = await episodesService.ToggleLikeAsync(episodeId, userId);
+        return result ? Ok() : BadRequest();
+    }
+
+    [Authorize]
+    [HttpPost("view/{episodeId}")]
+    public async Task<IActionResult> AddView(int episodeId)
+    {
+        var userId = GetUserId();
+        var result = await episodesService.AddViewAsync(episodeId, userId);
+        return result ? Ok() : BadRequest();
     }
 
 

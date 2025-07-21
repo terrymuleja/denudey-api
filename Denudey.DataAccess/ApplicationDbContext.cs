@@ -18,7 +18,9 @@ namespace Denudey.DataAccess
 
         public DbSet<ScamflixEpisode> ScamflixEpisodes => Set<ScamflixEpisode>();
 
+        public DbSet<EpisodeLike> EpisodeLikes { get; set; }
 
+        public DbSet<EpisodeView> EpisodeViews { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -70,6 +72,26 @@ namespace Denudey.DataAccess
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             });
 
+
+
+            modelBuilder.Entity<EpisodeLike>()
+                .HasIndex(l => new { l.UserId, l.EpisodeId })
+                .IsUnique();
+
+            modelBuilder.Entity<EpisodeLike>()
+                .HasOne(l => l.Episode)
+                .WithMany(e => e.Likes)
+                .HasForeignKey(l => l.EpisodeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EpisodeView>()
+                .HasIndex(v => new { v.UserId, v.EpisodeId, v.ViewedAt });
+
+            modelBuilder.Entity<EpisodeView>()
+                .HasOne(v => v.Episode)
+                .WithMany(e => e.Views)
+                .HasForeignKey(v => v.EpisodeId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
 

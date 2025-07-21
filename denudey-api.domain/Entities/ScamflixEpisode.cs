@@ -11,5 +11,9 @@
 
         public ApplicationUser Creator { get; set; }
 
+        public ICollection<EpisodeLike> Likes { get; set; } = new List<EpisodeLike>();
+        public ICollection<EpisodeView> Views { get; set; } = new List<EpisodeView>();
+
+
     }
 }

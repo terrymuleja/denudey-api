@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
+using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 using Denudey.Api.Models;
 using Denudey.Api.Services.Cloudinary.Interfaces;
@@ -22,6 +23,8 @@ namespace Denudey.Api.Services.Implementations
 
             var query = db.ScamflixEpisodes
                 .Include(e => e.Creator)
+                .Include(e => e.Likes)
+                .Include(e => e.Views)
                 .AsQueryable();
 
             if (createdBy.HasValue)
@@ -50,7 +53,11 @@ namespace Denudey.Api.Services.Implementations
                     ImageUrl = e.ImageUrl,
                     CreatedAt = e.CreatedAt,
                     CreatedBy = e.Creator.Username,
-                    CreatorId = e.Creator.Id.ToString()
+                    CreatorId = e.Creator.Id.ToString(),
+                    CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? string.Empty,
+                    Likes = e.Likes.Count,
+                    Views = e.Views.Count,
+                    HasUserLiked = e.Likes.Any(l => l.UserId == createdBy)
                 })
                 .ToListAsync();
 
@@ -83,6 +90,41 @@ namespace Denudey.Api.Services.Implementations
             await cloudinaryService.DeleteImageFromCloudinary(episode.ImageUrl);
 
             return true;
+        }
+
+
+        public async Task<bool> ToggleLikeAsync(int episodeId, Guid userId)
+        {
+            var existing = await db.EpisodeLikes
+                .FirstOrDefaultAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
+
+            if (existing != null)
+            {
+                db.EpisodeLikes.Remove(existing);
+            }
+            else
+            {
+                db.EpisodeLikes.Add(new EpisodeLike
+                {
+                    EpisodeId = episodeId,
+                    UserId = userId,
+                    LikedAt = DateTime.UtcNow
+                });
+            }
+
+            return await db.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> AddViewAsync(int episodeId, Guid userId)
+        {
+            db.EpisodeViews.Add(new EpisodeView
+            {
+                EpisodeId = episodeId,
+                UserId = userId,
+                ViewedAt = DateTime.UtcNow
+            });
+
+            return await db.SaveChangesAsync() > 0;
         }
 
     }

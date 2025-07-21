@@ -10,5 +10,12 @@
 
         public string? CreatedBy { get; set; }
         public string? CreatorId { get; set; }
+
+        public string CreatorAvatarUrl { get; set; }
+
+        public int Views { get; set; }
+        public int Likes { get; set; }
+
+        public bool HasUserLiked { get; set; }
     }
 }
