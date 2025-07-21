@@ -55,9 +55,12 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         return Ok(new { episode.Id });
     }
 
-    
-    [HttpGet("mine")]
-    public async Task<IActionResult> GetMyEpisodes([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+
+    [HttpGet(template: "mine")]
+    public async Task<IActionResult> GetMyEpisodes(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? User.FindFirst("sub")?.Value;
@@ -65,9 +68,10 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var id))
             return Unauthorized(new { error = "Invalid user ID." });
 
-        var result = await episodesService.GetEpisodesAsync(id, null, page, pageSize);
+        var result = await episodesService.GetEpisodesAsync(id, search, page, pageSize);
         return Ok(result);
     }
+
 
     /// <summary>
     /// GET /api/episodes?page=1&pageSize=20 → all episodes
