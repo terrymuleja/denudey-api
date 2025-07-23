@@ -60,9 +60,9 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var userId = GetUserId();
+        var currentUserId = GetUserId();
 
-        var result = await episodesService.GetEpisodesAsync(userId, search, page, pageSize);
+        var result = await episodesService.GetEpisodesAsync(currentUserId, currentUserId, search, page, pageSize);
         return Ok(result);
     }
 
@@ -81,7 +81,8 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var result = await episodesService.GetEpisodesAsync(null, search, page, pageSize);
+        var userId = GetUserId();
+        var result = await episodesService.GetEpisodesAsync(null, userId, search, page, pageSize);
         return Ok(result);
     }
 
@@ -112,7 +113,7 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
     }
 
     
-    [HttpPost("{1}/view")]
+    [HttpPost("{id}/view")]
     public async Task<IActionResult> TrackView(int id)
     {
         var userId = GetUserId();

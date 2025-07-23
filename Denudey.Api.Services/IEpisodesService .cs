@@ -5,7 +5,7 @@ namespace Denudey.Api.Services
 {
     public interface IEpisodesService
     {
-        Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(Guid? createdBy, string? search, int page, int pageSize);
+        Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(Guid? createdBy, Guid? currentUserId, string? search, int page, int pageSize);
         Task<bool> DeleteEpisodeAsync(int episodeId, Guid userId, string role);
 
         Task<bool> TrackViewAsync(int episodeId, Guid userId);

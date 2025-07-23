@@ -11,6 +11,10 @@ using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
 using Microsoft.OpenApi.Models;
 using Denudey.Api.Services.Implementations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace denudey_api
 {
@@ -30,7 +34,21 @@ namespace denudey_api
             builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            {
+                options.UseNpgsql(
+                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.CommandTimeout(30);
+                        // Using custom execution strategy instead of built-in retry
+                        npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
+                    }
+                );
+            });
+
+
+
+
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
             builder.Services.AddScoped<IEpisodesService, EpisodesService>();

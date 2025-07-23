@@ -29,7 +29,10 @@ namespace Denudey.Api.Domain.Entities
         public bool IsPrivate { get; set; }
 
         public List<Product> Products { get; set; } = new();  // as model
-        public List<Demand> Demands { get; set; } = new();    
+        public List<Demand> Demands { get; set; } = new();
+
+        public ICollection<EpisodeLike> EpisodeLikes { get; set; } = new List<EpisodeLike>();
+        public ICollection<EpisodeView> EpisodeViews { get; set; } = new List<EpisodeView>();
 
     }
 }

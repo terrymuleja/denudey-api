@@ -78,7 +78,7 @@ namespace Denudey.DataAccess
             });
 
 
-
+            // Index for EpisodeLike
             modelBuilder.Entity<EpisodeLike>()
                 .HasIndex(l => new { l.UserId, l.EpisodeId })
                 .IsUnique();
@@ -89,6 +89,19 @@ namespace Denudey.DataAccess
                 .HasForeignKey(l => l.EpisodeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<EpisodeLike>()
+                .HasOne(l => l.User)
+                .WithMany()                       // Optional: .WithMany(u => u.EpisodeLikes)
+                .HasForeignKey(l => l.UserId)     // ✅ ADD THIS
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EpisodeLike>()
+                .HasOne(l => l.User)
+                .WithMany(u => u.EpisodeLikes) // ✅ bidirectional
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Index for EpisodeView
             modelBuilder.Entity<EpisodeView>()
                 .HasIndex(v => new { v.UserId, v.EpisodeId, v.ViewedAt });
 
@@ -96,6 +109,19 @@ namespace Denudey.DataAccess
                 .HasOne(v => v.Episode)
                 .WithMany(e => e.Views)
                 .HasForeignKey(v => v.EpisodeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+
+            modelBuilder.Entity<EpisodeView>()
+                .HasOne(l => l.User)
+                .WithMany()                       // Optional: .WithMany(u => u.EpisodeLikes)
+                .HasForeignKey(l => l.UserId)     // ✅ ADD THIS
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EpisodeView>()
+                .HasOne(v => v.User)
+                .WithMany(u => u.EpisodeViews) // ✅ now bidirectional
+                .HasForeignKey(v => v.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             var jsonOptions = new JsonSerializerOptions();

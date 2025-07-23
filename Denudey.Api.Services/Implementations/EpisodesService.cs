@@ -16,7 +16,7 @@ namespace Denudey.Api.Services.Implementations
     public class EpisodesService (ApplicationDbContext db, ICloudinaryService cloudinaryService) : IEpisodesService
     {
 
-        public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(Guid? createdBy, string? search, int page, int pageSize)
+        public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(Guid? createdBy, Guid? currentUserId, string? search, int page, int pageSize)
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0 || pageSize > 100) pageSize = 10;
@@ -57,7 +57,7 @@ namespace Denudey.Api.Services.Implementations
                     CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? string.Empty,
                     Likes = e.Likes.Count,
                     Views = e.Views.Count,
-                    HasUserLiked = e.Likes.Any(l => l.UserId == createdBy)
+                    HasUserLiked = currentUserId != null && e.Likes.Any(l => l.UserId == currentUserId)
                 })
                 .ToListAsync();
 
@@ -95,37 +95,110 @@ namespace Denudey.Api.Services.Implementations
 
         public async Task<bool> ToggleLikeAsync(int episodeId, Guid userId)
         {
-            var existing = await db.EpisodeLikes
-                .FirstOrDefaultAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
+            // Input validation
+            if (episodeId <= 0)
+                throw new ArgumentException("Episode ID must be greater than zero.", nameof(episodeId));
 
-            if (existing != null)
+            if (userId == Guid.Empty)
+                throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+            try
             {
-                db.EpisodeLikes.Remove(existing);
-            }
-            else
-            {
-                db.EpisodeLikes.Add(new EpisodeLike
+                var success = false;
+                var strategy = db.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
                 {
-                    EpisodeId = episodeId,
-                    UserId = userId,
-                    LikedAt = DateTime.UtcNow
-                });
-            }
+                    var existing = await db.EpisodeLikes
+                        .FirstOrDefaultAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
 
-            return await db.SaveChangesAsync() > 0;
+                    if (existing != null)
+                    {
+                        db.EpisodeLikes.Remove(existing);
+                    }
+                    else
+                    {
+                        // Verify episode exists before creating like
+                        var episodeExists = await db.ScamflixEpisodes
+                            .AnyAsync(e => e.Id == episodeId);
+
+                        if (!episodeExists)
+                            throw new InvalidOperationException($"Episode with ID {episodeId} does not exist.");
+
+                        db.EpisodeLikes.Add(new EpisodeLike
+                        {
+                            EpisodeId = episodeId,
+                            UserId = userId,
+                            LikedAt = DateTime.UtcNow
+                        });
+                    }
+                    var result = await db.SaveChangesAsync();
+                    success =  result > 0;
+                });
+
+                return success;
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the exception (assuming you have a logger)
+                // logger.LogError(ex, "Database error occurred while toggling like for Episode {EpisodeId} and User {UserId}", episodeId, userId);
+
+                // Handle specific database constraint violations
+                if (ex.InnerException?.Message?.Contains("FOREIGN KEY constraint") == true)
+                {
+                    throw new InvalidOperationException("Invalid episode or user reference.", ex);
+                }
+
+                throw new InvalidOperationException("An error occurred while updating the like status.", ex);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                // logger.LogError(ex, "Unexpected error occurred while toggling like for Episode {EpisodeId} and User {UserId}", episodeId, userId);
+
+                throw new InvalidOperationException("An unexpected error occurred while processing the like toggle.", ex);
+            }
         }
 
         public async Task<bool> TrackViewAsync(int episodeId, Guid userId)
         {
-            db.EpisodeViews.Add(new EpisodeView
+            try
             {
-                EpisodeId = episodeId,
-                UserId = userId,
-                ViewedAt = DateTime.UtcNow
-            });
+                var success = false;
+                var strategy = db.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
+                {
+                    db.EpisodeViews.Add(new EpisodeView
+                    {
+                        EpisodeId = episodeId,
+                        UserId = userId,
+                        ViewedAt = DateTime.UtcNow
+                    });
+                    success = await db.SaveChangesAsync() > 0;
+                });
 
-            return await db.SaveChangesAsync() > 0;
+
+                return success;
+            }
+            catch (DbUpdateException ex)
+            {
+                // Optional: Log detailed DB exception here
+                Console.WriteLine($"Database update failed in TrackViewAsync: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("💥 General Exception caught:");
+                Console.WriteLine(ex.ToString()); // Full type + message + stack
+                Console.WriteLine("💬 Inner Exception:");
+                Console.WriteLine(ex.InnerException?.ToString());
+                Console.WriteLine($"IsConnected: {db.Database.CanConnect()}");
+
+                // Optional: Log general exception
+                Console.WriteLine($"Unexpected error in TrackViewAsync: {ex.Message}");
+                return false;
+            }
         }
+
 
     }
 
