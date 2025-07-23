@@ -103,16 +103,23 @@ public class EpisodesController(ApplicationDbContext db, IEpisodesService episod
     }
 
 
-    
-    [HttpPost("{id}/like")]
+
+    [HttpPost(template: "{id}/like")]
     public async Task<IActionResult> ToggleLike(int id)
     {
-        var userId = GetUserId();
-        var result = await episodesService.ToggleLikeAsync(id, userId);
-        return result ? Ok() : BadRequest();
+        try
+        {
+            var userId = GetUserId();
+            var result = await episodesService.ToggleLikeAsync(id, userId);
+            return Ok(new { result.HasUserLiked, result.Likes });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
-    
+
     [HttpPost("{id}/view")]
     public async Task<IActionResult> TrackView(int id)
     {

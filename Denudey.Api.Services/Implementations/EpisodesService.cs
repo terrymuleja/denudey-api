@@ -93,9 +93,8 @@ namespace Denudey.Api.Services.Implementations
         }
 
 
-        public async Task<bool> ToggleLikeAsync(int episodeId, Guid userId)
+        public async Task<(bool HasUserLiked, int Likes)> ToggleLikeAsync(int episodeId, Guid userId)
         {
-            // Input validation
             if (episodeId <= 0)
                 throw new ArgumentException("Episode ID must be greater than zero.", nameof(episodeId));
 
@@ -104,7 +103,7 @@ namespace Denudey.Api.Services.Implementations
 
             try
             {
-                var success = false;
+                bool hasUserLiked;
                 var strategy = db.Database.CreateExecutionStrategy();
                 await strategy.ExecuteAsync(async () =>
                 {
@@ -114,13 +113,11 @@ namespace Denudey.Api.Services.Implementations
                     if (existing != null)
                     {
                         db.EpisodeLikes.Remove(existing);
+                        hasUserLiked = false;
                     }
                     else
                     {
-                        // Verify episode exists before creating like
-                        var episodeExists = await db.ScamflixEpisodes
-                            .AnyAsync(e => e.Id == episodeId);
-
+                        var episodeExists = await db.ScamflixEpisodes.AnyAsync(e => e.Id == episodeId);
                         if (!episodeExists)
                             throw new InvalidOperationException($"Episode with ID {episodeId} does not exist.");
 
@@ -130,31 +127,25 @@ namespace Denudey.Api.Services.Implementations
                             UserId = userId,
                             LikedAt = DateTime.UtcNow
                         });
+                        hasUserLiked = true;
                     }
-                    var result = await db.SaveChangesAsync();
-                    success =  result > 0;
+
+                    await db.SaveChangesAsync();
                 });
 
-                return success;
+                var likeCount = await db.EpisodeLikes.CountAsync(l => l.EpisodeId == episodeId);
+                var hasLiked = await db.EpisodeLikes.AnyAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
+                return (hasLiked, likeCount);
             }
             catch (DbUpdateException ex)
             {
-                // Log the exception (assuming you have a logger)
-                // logger.LogError(ex, "Database error occurred while toggling like for Episode {EpisodeId} and User {UserId}", episodeId, userId);
-
-                // Handle specific database constraint violations
                 if (ex.InnerException?.Message?.Contains("FOREIGN KEY constraint") == true)
-                {
                     throw new InvalidOperationException("Invalid episode or user reference.", ex);
-                }
 
                 throw new InvalidOperationException("An error occurred while updating the like status.", ex);
             }
             catch (Exception ex)
             {
-                // Log the exception
-                // logger.LogError(ex, "Unexpected error occurred while toggling like for Episode {EpisodeId} and User {UserId}", episodeId, userId);
-
                 throw new InvalidOperationException("An unexpected error occurred while processing the like toggle.", ex);
             }
         }

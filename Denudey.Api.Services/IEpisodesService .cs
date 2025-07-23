@@ -9,7 +9,7 @@ namespace Denudey.Api.Services
         Task<bool> DeleteEpisodeAsync(int episodeId, Guid userId, string role);
 
         Task<bool> TrackViewAsync(int episodeId, Guid userId);
-        Task<bool> ToggleLikeAsync(int episodeId, Guid userId);
+        Task<(bool HasUserLiked, int Likes)> ToggleLikeAsync(int episodeId, Guid userId);
         //Task<int> GetViewsAsync(int episodeId);
         //Task<int> GetLikesAsync(int episodeId);
 
