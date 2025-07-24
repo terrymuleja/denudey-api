@@ -5,7 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
-using Denudey.DataAccess;
+using Denudey.Api.Services.Infrastructure.DbContexts;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Api.Services.Implementations

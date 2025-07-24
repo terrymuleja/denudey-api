@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Denudey.DataAccess.Migrations
+namespace Denudey.Api.Services.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddEpisodeLikesAndViews : Migration

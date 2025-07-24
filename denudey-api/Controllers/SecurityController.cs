@@ -1,4 +1,4 @@
-﻿using Denudey.DataAccess;
+﻿using Denudey.Api.Services.Infrastructure;
 using DenudeyApi.Models.DTOs;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +9,7 @@ using Denudey.Api.Models.DTOs;
 using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
 using Denudey.Api.Domain.Entities;
+using Denudey.Api.Services.Infrastructure.DbContexts;
 
 namespace Denudey.Api.Controllers
 {

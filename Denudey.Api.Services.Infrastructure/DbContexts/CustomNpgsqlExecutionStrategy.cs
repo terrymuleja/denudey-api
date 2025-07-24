@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 
-namespace Denudey.DataAccess
+namespace Denudey.Api.Services.Infrastructure.DbContexts
 {
     public class CustomNpgsqlExecutionStrategy : ExecutionStrategy
     {

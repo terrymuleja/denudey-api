@@ -5,13 +5,13 @@ VisualStudioVersion = 17.13.35913.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "denudey-api", "denudey-api\denudey-api.csproj", "{93157A3A-32A8-4AD3-A3BB-C4BCDB597385}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.DataAccess", "Denudey.DataAccess\Denudey.DataAccess.csproj", "{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "denudey-api.domain", "denudey-api.domain\denudey-api.domain.csproj", "{516DA00C-9785-40E8-AB04-25CFA6F4953D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.Api.Services", "Denudey.Api.Services\Denudey.Api.Services.csproj", "{A591F441-2731-4EED-A69A-E89A98EBCA17}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.Api.Services.Cloudinary", "Denudey.Api.Services.Cloudinary\Denudey.Api.Services.Cloudinary.csproj", "{1682B974-C4EE-4480-A573-758F8D79F40C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Denudey.Api.Services.Infrastructure", "Denudey.Api.Services.Infrastructure\Denudey.Api.Services.Infrastructure.csproj", "{E329A8A3-356D-4A41-9725-8FC03910FE4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,6 @@ Global
 		{93157A3A-32A8-4AD3-A3BB-C4BCDB597385}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93157A3A-32A8-4AD3-A3BB-C4BCDB597385}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93157A3A-32A8-4AD3-A3BB-C4BCDB597385}.Release|Any CPU.Build.0 = Release|Any CPU
-		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{073655D4-15BE-4293-AE8B-04C7BFA4DE7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{516DA00C-9785-40E8-AB04-25CFA6F4953D}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -39,6 +35,10 @@ Global
 		{1682B974-C4EE-4480-A573-758F8D79F40C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1682B974-C4EE-4480-A573-758F8D79F40C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1682B974-C4EE-4480-A573-758F8D79F40C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E329A8A3-356D-4A41-9725-8FC03910FE4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E329A8A3-356D-4A41-9725-8FC03910FE4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E329A8A3-356D-4A41-9725-8FC03910FE4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E329A8A3-356D-4A41-9725-8FC03910FE4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Denudey.DataAccess.Migrations
+namespace Denudey.Api.Services.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

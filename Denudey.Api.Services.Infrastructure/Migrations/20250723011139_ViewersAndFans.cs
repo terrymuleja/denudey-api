@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Denudey.DataAccess.Migrations
+namespace Denudey.Api.Services.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class ViewersAndFans : Migration

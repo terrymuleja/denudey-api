@@ -1,6 +1,6 @@
 ﻿using Denudey.Api.Interfaces;
 using Denudey.Api.Services;
-using Denudey.DataAccess;
+using Denudey.Api.Services.Infrastructure;
 using DenudeyApi.Seeders;
 using DenudeyApi.Services;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +11,7 @@ using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
 using Microsoft.OpenApi.Models;
 using Denudey.Api.Services.Implementations;
+using Denudey.Api.Services.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;

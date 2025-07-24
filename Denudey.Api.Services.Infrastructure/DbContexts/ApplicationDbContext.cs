@@ -4,7 +4,7 @@ using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Denudey.DataAccess
+namespace Denudey.Api.Services.Infrastructure.DbContexts
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : DbContext(options)

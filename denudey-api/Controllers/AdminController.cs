@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Denudey.Api.Services.Infrastructure.DbContexts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DenudeyApi.Models.DTOs;
-using Denudey.DataAccess;
+using Denudey.Api.Services.Infrastructure;
 
 namespace DenudeyApi.Controllers;
 

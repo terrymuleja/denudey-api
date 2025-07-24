@@ -8,7 +8,7 @@ using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 using Denudey.Api.Models;
 using Denudey.Api.Services.Cloudinary.Interfaces;
-using Denudey.DataAccess;
+using Denudey.Api.Services.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Api.Services.Implementations
