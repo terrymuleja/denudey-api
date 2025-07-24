@@ -16,5 +16,12 @@ namespace Denudey.Api.Controllers
                 throw new UnauthorizedAccessException("Invalid user ID.");
             return guid;
         }
+
+        protected string? GetUserRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value
+                   ?? User.FindFirst("role")?.Value;
+        }
+
     }
 }

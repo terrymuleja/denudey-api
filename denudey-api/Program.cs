@@ -12,9 +12,12 @@ using Denudey.Api.Services.Cloudinary.Interfaces;
 using Microsoft.OpenApi.Models;
 using Denudey.Api.Services.Implementations;
 using Denudey.Api.Services.Infrastructure.DbContexts;
+using Denudey.Api.Services.Infrastructure.Sharding.Implementations;
+using Denudey.Application.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Denudey.Application.Interfaces;
 
 
 namespace denudey_api
@@ -47,16 +50,16 @@ namespace denudey_api
                 );
             });
 
-
+            builder.Services.AddScoped<IEventPublisher, EventPublisher>();
             builder.Services.AddScoped<EpisodeService>();
-
+            builder.Services.AddScoped<EpisodeQueryService>();
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
-            builder.Services.AddScoped<IEpisodesService, EpisodesService>();
+            
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
             builder.Services.AddScoped<IProductsService, ProductsService>();
-
+            builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
 
             // ✅ Add Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -4,6 +4,6 @@ namespace Denudey.Application.Interfaces
 {
     public interface IEventPublisher
     {
-        Task PublishAsync(DomainEvent evt);
+        Task PublishAsync<TEvent>(TEvent @event) where TEvent : class;
     }
 }

@@ -1,11 +1,8 @@
-﻿using System;
+﻿using Denudey.Api.Services.Infrastructure.Sharding;
 using Denudey.Api.Services.Infrastructure.DbContexts;
-using Denudey.Api.Services.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
-namespace Denudey.Api.Services.Infrastructure.Sharding
+public interface IShardRouter
 {
-    public interface IShardRouter
-    {
-        ApplicationDbContext GetDbForUser(Guid userId);
-    }
+    ApplicationDbContext GetDbForUser(Guid userId);
 }

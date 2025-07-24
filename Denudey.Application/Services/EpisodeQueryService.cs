@@ -12,7 +12,7 @@ namespace Denudey.Application.Services
 {
 
 
-    public class EpisodeQueryService(IShardRouter shardRouter) 
+    public class EpisodeQueryService(IShardRouter router) : EpisodeServiceBase(router)
     {
         public async Task<List<ScamFlixEpisodeDto>> GetEpisodesAsync(
             Guid? createdBy, 
@@ -50,14 +50,6 @@ namespace Denudey.Application.Services
                 .ToListAsync();
         }
 
-        public async Task<Guid?> GetCreatorIdAsync(int episodeId, Guid currentUserId)
-        {
-            var db = shardRouter.GetDbForUser(currentUserId);
-
-            return await db.ScamflixEpisodes
-                .Where(e => e.Id == episodeId)
-                .Select(e => e.Creator.Id)
-                .FirstOrDefaultAsync();
-        }
+        
     }
 }
