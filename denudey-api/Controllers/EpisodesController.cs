@@ -17,7 +17,7 @@ namespace Denudey.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/episodes")]
-public class EpisodesController(ApplicationDbContext db, IEpisodesService episodesService) : DenudeyControlerBase
+public class EpisodesController(ApplicationDbContext db, EpisodeService episodeService, IEpisodesService episodesService) : DenudeyControlerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)

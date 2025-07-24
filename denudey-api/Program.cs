@@ -48,6 +48,7 @@ namespace denudey_api
             });
 
 
+            builder.Services.AddScoped<EpisodeService>();
 
 
             builder.Services.AddScoped<ITokenService, TokenService>();

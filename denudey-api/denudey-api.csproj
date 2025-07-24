@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Denudey.Api.Services.Cloudinary\Denudey.Api.Services.Cloudinary.csproj" />
     <ProjectReference Include="..\Denudey.Api.Services.Infrastructure\Denudey.Api.Services.Infrastructure.csproj" />
     <ProjectReference Include="..\Denudey.Api.Services\Denudey.Api.Services.csproj" />
+    <ProjectReference Include="..\Denudey.Application\Denudey.Application.csproj" />
   </ItemGroup>
 
 </Project>
