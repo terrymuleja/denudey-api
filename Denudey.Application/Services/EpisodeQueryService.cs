@@ -14,17 +14,19 @@ namespace Denudey.Application.Services
 
     public class EpisodeQueryService(IShardRouter router) : EpisodeServiceBase(router)
     {
-        public async Task<List<ScamFlixEpisodeDto>> GetEpisodesAsync(
-            Guid? createdBy, 
-            Guid? currentUserId, 
-            string? search, 
-            int page, 
+        public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(
+            Guid? createdBy,
+            Guid? currentUserId,
+            string? search,
+            int page,
             int pageSize)
         {
             var db = shardRouter.GetDbForUser(currentUserId ?? Guid.Empty);
 
             var query = db.ScamflixEpisodes
                 .Include(e => e.Creator)
+                .Include(e  => e.Views)
+                .Include(e => e.Likes)
                 .AsQueryable();
 
             if (createdBy != null)
@@ -33,7 +35,9 @@ namespace Denudey.Application.Services
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(e => e.Title.Contains(search));
 
-            return await query
+            var totalCount = await query.CountAsync();
+
+            var items = await query
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -45,11 +49,22 @@ namespace Denudey.Application.Services
                     ImageUrl = e.ImageUrl,
                     CreatedAt = e.CreatedAt,
                     CreatorId = e.Creator.Id.ToString(),
-                    CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? ""
+                    CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? "",
+                    CreatedBy = e.Creator.Username,
+                    Likes = e.Likes.Count,
+                    Views = e.Views.Count,
+                    HasUserLiked = currentUserId != null && e.Likes.Any(l => l.UserId == currentUserId)
                 })
                 .ToListAsync();
+
+            return new PagedResult<ScamFlixEpisodeDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalCount
+            };
         }
 
-        
     }
 }
