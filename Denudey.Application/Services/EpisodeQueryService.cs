@@ -25,8 +25,6 @@ namespace Denudey.Application.Services
 
             var query = db.ScamflixEpisodes
                 .Include(e => e.Creator)
-                .Include(e  => e.Views)
-                .Include(e => e.Likes)
                 .AsQueryable();
 
             if (createdBy != null)
@@ -48,7 +46,7 @@ namespace Denudey.Application.Services
                     Tags = e.Tags,
                     ImageUrl = e.ImageUrl,
                     CreatedAt = e.CreatedAt,
-                    CreatorId = e.Creator.Id.ToString(),
+                    CreatorId = await GetCreatorIdAsync(e.Id),
                     CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? "",
                     CreatedBy = e.Creator.Username,
                     Likes = e.Likes.Count,

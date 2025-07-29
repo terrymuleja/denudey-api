@@ -7,14 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Application.Services
 {
-    public class EpisodeServiceBase
+    public class EpisodeServiceBase(IShardRouter router)
     {
-        protected readonly IShardRouter shardRouter;
+        protected readonly IShardRouter shardRouter = router ?? throw new ArgumentNullException(nameof(router));
 
-        public EpisodeServiceBase(IShardRouter router)
-        {
-            shardRouter = router ?? throw new ArgumentNullException(nameof(router));
-        }
         public async Task<Guid?> GetCreatorIdAsync(int episodeId, Guid currentUserId)
         {
             var db = shardRouter.GetDbForUser(currentUserId);
