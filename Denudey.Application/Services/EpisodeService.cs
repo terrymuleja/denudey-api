@@ -47,48 +47,12 @@ public class EpisodeService : EpisodeServiceBase
                 var strategy = db.Database.CreateExecutionStrategy();
                 await strategy.ExecuteAsync(async () =>
                 {
-                    var existing = await db.EpisodeLikes
-                        .FirstOrDefaultAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
-
-                    if (existing != null)
-                    {
-                        db.EpisodeLikes.Remove(existing);
-                        await _events.PublishAsync(new EpisodeUnLikedEvent()
-                        {
-                            LikerId = userId,
-                            EpisodeId = episodeId,
-                            CreatorId = (Guid)creatorId
-                        });
-                    }
-                    else
-                    {
-                        var episodeExists = await db.ScamflixEpisodes.AnyAsync(e => e.Id == episodeId);
-                        if (!episodeExists)
-                            throw new InvalidOperationException($"Episode with ID {episodeId} does not exist.");
-
-                        db.EpisodeLikes.Add(new EpisodeLike
-                        {
-                            EpisodeId = episodeId,
-                            UserId = userId,
-                            LikedAt = DateTime.UtcNow
-                        });
-
-                        await _events.PublishAsync(new EpisodeLikedEvent()
-                        {
-                            LikerId = userId,
-                            EpisodeId = episodeId,
-                            CreatorId = (Guid)creatorId
-                        });
-
-                    }
-
-                    await db.SaveChangesAsync();
+                    
                 });
 
 
-                var likeCount = await db.EpisodeLikes.CountAsync(l => l.EpisodeId == episodeId);
-                var hasLiked = await db.EpisodeLikes.AnyAsync(l => l.EpisodeId == episodeId && l.UserId == userId);
-                return (hasLiked, likeCount);
+                
+                return (true, 0);
             }
             
         }
@@ -120,12 +84,7 @@ public class EpisodeService : EpisodeServiceBase
                 await strategy.ExecuteAsync(async () =>
                 {
 
-                    db.EpisodeViews.Add(new EpisodeView
-                    {
-                        UserId = userId,
-                        EpisodeId = episodeId,
-                        ViewedAt = DateTime.UtcNow
-                    });
+                    
 
                     await db.SaveChangesAsync();
 

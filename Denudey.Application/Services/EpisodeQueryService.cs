@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Models;
 using Denudey.Api.Services.Infrastructure.Sharding;
+using Denudey.Application.Interfaces;
+using Elastic.Clients.Elasticsearch;
 using Microsoft.EntityFrameworkCore;
 
 namespace Denudey.Application.Services
 {
 
 
-    public class EpisodeQueryService(IShardRouter router) : EpisodeServiceBase(router)
+    public class EpisodeQueryService(IShardRouter router, ElasticsearchClient elastic, IEpisodeStatsService stats) : EpisodeServiceBase(router)
     {
         public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(
             Guid? createdBy,
@@ -46,12 +48,12 @@ namespace Denudey.Application.Services
                     Tags = e.Tags,
                     ImageUrl = e.ImageUrl,
                     CreatedAt = e.CreatedAt,
-                    CreatorId = await GetCreatorIdAsync(e.Id),
+                    CreatorId = e.CreatedBy,
                     CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? "",
                     CreatedBy = e.Creator.Username,
-                    Likes = e.Likes.Count,
-                    Views = e.Views.Count,
-                    HasUserLiked = currentUserId != null && e.Likes.Any(l => l.UserId == currentUserId)
+                    //Likes = e.Likes.Count,
+                    //Views = e.Views.Count,
+                    //HasUserLiked = currentUserId != null && e.Likes.Any(l => l.UserId == currentUserId)
                 })
                 .ToListAsync();
 

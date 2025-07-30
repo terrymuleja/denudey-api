@@ -9,7 +9,7 @@
         public DateTime CreatedAt { get; set; }
 
         public string? CreatedBy { get; set; }
-        public string? CreatorId { get; set; }
+        public Guid? CreatorId { get; set; }
 
         public string CreatorAvatarUrl { get; set; }
 

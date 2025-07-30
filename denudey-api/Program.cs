@@ -50,6 +50,20 @@ namespace denudey_api
                 );
             });
 
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            {
+                options.UseNpgsql(
+                    builder.Configuration.GetConnectionString("StatsDb"),
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.CommandTimeout(30);
+                        // Using custom execution strategy instead of built-in retry
+                        npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
+                    }
+                );
+            });
+            
+
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();
