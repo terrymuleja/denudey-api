@@ -77,7 +77,7 @@ namespace denudey_api
                 Console.WriteLine("=== Environment Variables Debug ===");
                 foreach (DictionaryEntry env in Environment.GetEnvironmentVariables())
                 {
-                    Console.WriteLine($"{env.Key}: {env.Value}");
+                    Console.WriteLine($"var {env.Key}: {env.Value}");
                 }
                 Console.WriteLine("=== End Debug ===");
 
