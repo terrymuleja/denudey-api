@@ -8,6 +8,7 @@ using Denudey.Api.Services;
 using Denudey.Api.Services.Implementations;
 using Denudey.Api.Services.Infrastructure;
 using Denudey.Api.Services.Infrastructure.DbContexts;
+using Denudey.Application.Interfaces;
 using Denudey.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,10 @@ namespace Denudey.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/episodes")]
-public class EpisodesController(ApplicationDbContext db, EpisodeService episodesService, EpisodeQueryService episodeQueryService) : DenudeyControlerBase
+public class EpisodesController(ApplicationDbContext db,
+    EpisodeService episodesService,
+    EpisodeQueryService episodeQueryService,
+    IEpisodeSearchIndexer searchService) : DenudeyControlerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
@@ -64,7 +68,7 @@ public class EpisodesController(ApplicationDbContext db, EpisodeService episodes
     {
         var currentUserId = GetUserId();
 
-        var result = await episodeQueryService.GetEpisodesAsync(currentUserId, currentUserId, search, page, pageSize);
+        var result = await episodeQueryService.GetMyEpisodes(currentUserId, search, page, pageSize);
         return Ok(result);
     }
 
@@ -84,7 +88,7 @@ public class EpisodesController(ApplicationDbContext db, EpisodeService episodes
         [FromQuery] int pageSize = 10)
     {
         var userId = GetUserId();
-        var result = await episodeQueryService.GetEpisodesAsync(null, userId, search, page, pageSize);
+        var result = await searchService.SearchEpisodesAsync(search, userId, page, pageSize);
         return Ok(result);
     }
 
@@ -107,14 +111,14 @@ public class EpisodesController(ApplicationDbContext db, EpisodeService episodes
 
 
     [HttpPost(template: "{id}/like")]
-    public async Task<IActionResult> ToggleLike(int id)
+    public async Task<IActionResult> ToggleLike(int id, [FromBody] EpisodeActionDto model)
     {
         try
         {
             
             var userId = GetUserId();
-            var result = await episodesService.ToggleLikeAsync(userId, id);
-            return Ok(new { result.HasUserLiked, result.Likes });
+            var result = await episodesService.ToggleLikeAsync(model);
+            return Ok(new { result.HasUserLiked, result.TotalLikes });
         }
         catch (Exception ex)
         {
@@ -124,11 +128,11 @@ public class EpisodesController(ApplicationDbContext db, EpisodeService episodes
 
 
     [HttpPost("{id}/view")]
-    public async Task<IActionResult> TrackView(int id)
+    public async Task<IActionResult> TrackView(int id, [FromBody] EpisodeActionDto model)
     {
         var userId = GetUserId();
         var role = GetUserRole();
-        var result = await episodesService.TrackViewEpisodeAsync(userId, id, role);
+        var result = await episodesService.TrackViewAsync(model);
         return result ? Ok() : BadRequest();
     }
 

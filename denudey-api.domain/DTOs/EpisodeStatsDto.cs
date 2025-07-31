@@ -8,7 +8,7 @@ namespace Denudey.Api.Domain.DTOs
 {
     public class EpisodeStatsDto
     {
-        public Guid EpisodeId { get; set; }
+        public int EpisodeId { get; set; }
         public int Views { get; set; }
         public int Likes { get; set; }
         public bool UserHasLiked { get; set; }

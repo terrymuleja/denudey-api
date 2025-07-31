@@ -12,19 +12,19 @@ namespace Denudey.Application.Services
 {
     public class EpisodeStatsService(StatsDbContext statsDb) : IEpisodeStatsService
     {
-        private readonly StatsDbContext _statsDb = statsDb;
+        
 
-        public async Task<Dictionary<Guid, EpisodeStatsDto>> GetStatsForEpisodesAsync(List<Guid> episodeIds, Guid? userId)
+        public async Task<Dictionary<int, EpisodeStatsDto>> GetStatsForEpisodesAsync(List<int> episodeIds, Guid? userId)
         {
             // Load view counts
-            var views = await _statsDb.EpisodeViews
+            var views = await statsDb.EpisodeViews
                 .Where(v => episodeIds.Contains(v.EpisodeId))
                 .GroupBy(v => v.EpisodeId)
                 .Select(g => new { EpisodeId = g.Key, Count = g.Count() })
                 .ToListAsync();
 
             // Load like counts
-            var likes = await _statsDb.EpisodeLikes
+            var likes = await statsDb.EpisodeLikes
                 .Where(l => episodeIds.Contains(l.EpisodeId))
                 .GroupBy(l => l.EpisodeId)
                 .Select(g => new { EpisodeId = g.Key, Count = g.Count() })
@@ -32,14 +32,14 @@ namespace Denudey.Application.Services
 
             // Load current user's likes
             var likedByUser = userId == null
-                ? new List<Guid>()
-                : await _statsDb.EpisodeLikes
+                ? new List<int>()
+                : await statsDb.EpisodeLikes
                     .Where(l => l.UserId == userId && episodeIds.Contains(l.EpisodeId))
                     .Select(l => l.EpisodeId)
                     .ToListAsync();
 
             // Merge results
-            var result = new Dictionary<Guid, EpisodeStatsDto>();
+            var result = new Dictionary<int, EpisodeStatsDto>();
             foreach (var id in episodeIds)
             {
                 result[id] = new EpisodeStatsDto

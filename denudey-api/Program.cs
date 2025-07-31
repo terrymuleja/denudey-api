@@ -63,7 +63,8 @@ namespace denudey_api
                 );
             });
             
-
+            
+            builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();

@@ -14,34 +14,38 @@ namespace Denudey.Application.Services
 {
 
 
-    public class EpisodeQueryService(IShardRouter router, ElasticsearchClient elastic, IEpisodeStatsService stats) : EpisodeServiceBase(router)
+    public class EpisodeQueryService(IShardRouter router, IEpisodeStatsService stats)
     {
-        public async Task<PagedResult<ScamFlixEpisodeDto>> GetEpisodesAsync(
-            Guid? createdBy,
-            Guid? currentUserId,
-            string? search,
-            int page,
-            int pageSize)
+        public async Task<PagedResult<ScamFlixEpisodeDto>> GetMyEpisodes(
+       Guid currentUserId,
+       string? search,
+       int page,
+       int pageSize)
         {
-            var db = shardRouter.GetDbForUser(currentUserId ?? Guid.Empty);
+            var db = router.GetDbForUser(currentUserId);
 
             var query = db.ScamflixEpisodes
                 .Include(e => e.Creator)
-                .AsQueryable();
-
-            if (createdBy != null)
-                query = query.Where(e => e.Creator.Id == createdBy);
+                .Where(e => e.Creator.Id == currentUserId);
 
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(e => e.Title.Contains(search));
 
             var totalCount = await query.CountAsync();
 
-            var items = await query
+            var episodes = await query
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(e => new ScamFlixEpisodeDto
+                .ToListAsync();
+
+            var episodeIds = episodes.Select(e => e.Id).ToList();
+            var statsMap = await stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
+
+            var items = episodes.Select(e =>
+            {
+                statsMap.TryGetValue(e.Id, out var stat);
+                return new ScamFlixEpisodeDto
                 {
                     Id = e.Id,
                     Title = e.Title,
@@ -49,13 +53,13 @@ namespace Denudey.Application.Services
                     ImageUrl = e.ImageUrl,
                     CreatedAt = e.CreatedAt,
                     CreatorId = e.CreatedBy,
-                    CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? "",
                     CreatedBy = e.Creator.Username,
-                    //Likes = e.Likes.Count,
-                    //Views = e.Views.Count,
-                    //HasUserLiked = currentUserId != null && e.Likes.Any(l => l.UserId == currentUserId)
-                })
-                .ToListAsync();
+                    CreatorAvatarUrl = e.Creator.ProfileImageUrl ?? "",
+                    Likes = stat?.Likes ?? 0,
+                    Views = stat?.Views ?? 0,
+                    HasUserLiked = stat?.UserHasLiked ?? false
+                };
+            }).ToList();
 
             return new PagedResult<ScamFlixEpisodeDto>
             {
@@ -65,6 +69,7 @@ namespace Denudey.Application.Services
                 TotalItems = totalCount
             };
         }
+
 
     }
 }
