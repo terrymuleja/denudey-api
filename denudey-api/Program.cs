@@ -70,6 +70,9 @@ namespace denudey_api
                 var apiKey = builder.Configuration["ELASTICSEARCH_APIKEY"];
                 var endpoint = builder.Configuration["ELASTICSEARCH_ENDPOINT"];
 
+                Console.WriteLine($"Elastic endpoint: {endpoint}");
+                Console.WriteLine($"Elastic API key: {apiKey}");
+
                 var config = sp.GetRequiredService<IConfiguration>();
                 ElasticsearchClientSettings settings;
 
