@@ -73,18 +73,12 @@ namespace denudey_api
                 var apiKey = builder.Configuration["ELASTICSEARCH_APIKEY"];
                 var endpoint = builder.Configuration["ELASTICSEARCH_ENDPOINT"];
 
-                Console.WriteLine($"Elastic endpoint: {endpoint}");
-                Console.WriteLine($"Elastic API key: {apiKey}");
-                Console.WriteLine("********************************");
-                Console.WriteLine("RAILWAY env key:");
-                Console.WriteLine(Environment.GetEnvironmentVariable("AAA"));
-
-                Console.WriteLine("RAILWAY env endpoint:");
-                Console.WriteLine(Environment.GetEnvironmentVariable("BBB"));
-
-                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                Console.WriteLine($"AAA: {builder.Configuration["AAA"]}");
-                Console.WriteLine($"BBB: {builder.Configuration["BBB"]}");
+                Console.WriteLine("=== Environment Variables Debug ===");
+                foreach (DictionaryEntry env in Environment.GetEnvironmentVariables())
+                {
+                    Console.WriteLine($"{env.Key}: {env.Value}");
+                }
+                Console.WriteLine("=== End Debug ===");
 
                 var config = sp.GetRequiredService<IConfiguration>();
                 ElasticsearchClientSettings settings;
