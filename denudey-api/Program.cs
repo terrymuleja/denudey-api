@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
+using System.Collections;
 
 
 namespace denudey_api
