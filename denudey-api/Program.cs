@@ -77,10 +77,10 @@ namespace denudey_api
                 Console.WriteLine($"Elastic API key: {apiKey}");
                 Console.WriteLine("********************************");
                 Console.WriteLine("RAILWAY env key:");
-                Console.WriteLine(Environment.GetEnvironmentVariable("ELASTICSEARCH_APIKEY"));
+                Console.WriteLine(Environment.GetEnvironmentVariable("AAA"));
 
                 Console.WriteLine("RAILWAY env endpoint:");
-                Console.WriteLine(Environment.GetEnvironmentVariable("ELASTICSEARCH_ENDPOINT"));
+                Console.WriteLine(Environment.GetEnvironmentVariable("BBB"));
 
                 var config = sp.GetRequiredService<IConfiguration>();
                 ElasticsearchClientSettings settings;
