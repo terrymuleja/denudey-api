@@ -82,6 +82,10 @@ namespace denudey_api
                 Console.WriteLine("RAILWAY env endpoint:");
                 Console.WriteLine(Environment.GetEnvironmentVariable("BBB"));
 
+                Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                Console.WriteLine($"AAA: {builder.Configuration["AAA"]}");
+                Console.WriteLine($"BBB: {builder.Configuration["BBB"]}");
+
                 var config = sp.GetRequiredService<IConfiguration>();
                 ElasticsearchClientSettings settings;
 

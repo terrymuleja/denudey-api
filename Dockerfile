@@ -4,14 +4,6 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 
 
-# Accept variables from Railway
-ARG ELASTICSEARCH_APIKEY
-ARG ELASTICSEARCH_ENDPOINT
-
-# Pass them into the container
-ENV ELASTICSEARCH_APIKEY=${ELASTICSEARCH_APIKEY}
-ENV ELASTICSEARCH_ENDPOINT=${ELASTICSEARCH_ENDPOINT}
-
 WORKDIR /app
 EXPOSE 8080
 
@@ -20,6 +12,16 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
+
+# Accept environment variables from Railway
+ARG ELASTICSEARCH_APIKEY
+ARG ELASTICSEARCH_ENDPOINT
+
+# Pass them into the container environment
+ENV ELASTICSEARCH_APIKEY=$ELASTICSEARCH_APIKEY
+ENV ELASTICSEARCH_ENDPOINT=$ELASTICSEARCH_ENDPOINT
+
 COPY ["denudey-api/denudey-api.csproj", "denudey-api/"]
 RUN dotnet restore "./denudey-api/denudey-api.csproj"
 COPY . .
