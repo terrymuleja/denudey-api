@@ -3,6 +3,15 @@
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 
+
+# Accept variables from Railway
+ARG ELASTICSEARCH_APIKEY
+ARG ELASTICSEARCH_ENDPOINT
+
+# Pass them into the container
+ENV ELASTICSEARCH_APIKEY=${ELASTICSEARCH_APIKEY}
+ENV ELASTICSEARCH_ENDPOINT=${ELASTICSEARCH_ENDPOINT}
+
 WORKDIR /app
 EXPOSE 8080
 
