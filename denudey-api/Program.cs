@@ -18,6 +18,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Denudey.Application.Interfaces;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 
 
 namespace denudey_api
@@ -50,7 +52,7 @@ namespace denudey_api
                 );
             });
 
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            builder.Services.AddDbContext<StatsDbContext>(options =>
             {
                 options.UseNpgsql(
                     builder.Configuration.GetConnectionString("StatsDb"),
@@ -62,12 +64,39 @@ namespace denudey_api
                     }
                 );
             });
-            
-            
+
+            builder.Services.AddSingleton(sp =>
+            {
+                var apiKey = builder.Configuration["ELASTICSEARCH_APIKEY"];
+                var endpoint = builder.Configuration["ELASTICSEARCH_ENDPOINT"];
+
+                var config = sp.GetRequiredService<IConfiguration>();
+                ElasticsearchClientSettings settings;
+
+                
+                if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(endpoint))
+                {
+                    var uri = new Uri(endpoint);
+                    settings = new ElasticsearchClientSettings(uri)
+                        .Authentication(new ApiKey(apiKey))
+                        .DefaultIndex("episodes");
+                }
+                else
+                {
+                    throw new InvalidOperationException("Missing Elasticsearch API key or endpoint");
+                }
+
+                return new ElasticsearchClient(settings);
+            });
+
+
+            builder.Services.AddScoped<IEpisodeStatsService, EpisodeStatsService>();
             builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
-            builder.Services.AddScoped<IEventPublisher, EventPublisher>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();
+
+            builder.Services.AddScoped<IEventPublisher, EventPublisher>();
+            
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();

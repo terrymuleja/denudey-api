@@ -4,9 +4,12 @@
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "ELASTICSEARCH_ENDPOINT": "https://396919d76f414cb7b05bfcfca28ab27a.europe-west1.gcp.cloud.es.io:443",
+            "ELASTICSEARCH_APIKEY": "WE5GNFhwZ0ItUXVib1VYOTJsa1I6ZHpiREpUc0FQNDVsZUV2SUNnRU0zUQ=="
+
+        },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5167"
     },
