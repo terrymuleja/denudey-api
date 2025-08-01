@@ -4,26 +4,23 @@ namespace Denudey.Application.Services;
 
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
-
-
-
 using Denudey.Api.Domain.Events;
 using Denudey.Api.Domain.Models;
 using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
 using Denudey.Api.Services.Infrastructure.DbContexts;
 using Denudey.Application.Interfaces;
-using Elastic.Clients.Elasticsearch.Nodes;
 using Microsoft.EntityFrameworkCore;
 
-public class EpisodeService 
+public class EpisodeService
 {
-    private IEventPublisher _events;
-    private ICloudinaryService _cloudinaryService;
+    private readonly IEventPublisher _events;
+    private readonly ICloudinaryService _cloudinaryService;
     private readonly ILogger<EpisodeService> _logger;
-    private readonly IShardRouter _shardRouter; 
+    private readonly IShardRouter _shardRouter;
     private readonly IEpisodeSearchIndexer _episodeSearchIndexer;
     private readonly StatsDbContext _statsDb;
+
     public EpisodeService(
         IShardRouter router,
         IEventPublisher events,
@@ -31,15 +28,16 @@ public class EpisodeService
         IEpisodeSearchIndexer indexer,
         ILogger<EpisodeService> logger,
         StatsDbContext statsDb
-    ) 
+    )
     {
-        this._statsDb = statsDb;
-        this._episodeSearchIndexer = indexer;
-        this._shardRouter = router;
-        this._events = events ?? throw new ArgumentNullException(nameof(events));
-        this._cloudinaryService = cloudinaryService ?? throw new ArgumentNullException(nameof(cloudinaryService));
-        this._logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _statsDb = statsDb ?? throw new ArgumentNullException(nameof(statsDb));
+        _episodeSearchIndexer = indexer ?? throw new ArgumentNullException(nameof(indexer));
+        _shardRouter = router ?? throw new ArgumentNullException(nameof(router));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
+        _cloudinaryService = cloudinaryService ?? throw new ArgumentNullException(nameof(cloudinaryService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
     public async Task<ScamFlixEpisodeDto> CreateEpisodeAsync(Guid userId, string title, string tags, string imageUrl)
     {
         var db = _shardRouter.GetDbForUser(userId);
@@ -56,8 +54,20 @@ public class EpisodeService
         db.ScamflixEpisodes.Add(episode);
         await db.SaveChangesAsync();
 
+        // Load creator for indexing
         await db.Entry(episode).Reference(e => e.Creator).LoadAsync();
-        await _episodeSearchIndexer.IndexAsync(episode);
+
+        // Index episode for search - with error handling
+        try
+        {
+            await _episodeSearchIndexer.IndexAsync(episode);
+            _logger.LogInformation("Successfully indexed episode {EpisodeId}", episode.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to index episode {EpisodeId} for search", episode.Id);
+            // Don't fail the entire operation if search indexing fails
+        }
 
         return new ScamFlixEpisodeDto
         {
@@ -78,68 +88,104 @@ public class EpisodeService
 
         var episode = await db.ScamflixEpisodes
             .Include(e => e.Creator)
-            .FirstOrDefaultAsync(e => e.Id == episodeId && e.Creator.Id == userId);
+            .FirstOrDefaultAsync(e => e.Id == episodeId);
 
         if (episode == null)
+        {
+            _logger.LogWarning("Episode {EpisodeId} not found", episodeId);
             return false;
+        }
+
+        // Check ownership or admin role
+        if (episode.Creator.Id != userId && !string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("User {UserId} attempted to delete episode {EpisodeId} without permission", userId, episodeId);
+            return false;
+        }
 
         db.ScamflixEpisodes.Remove(episode);
         await db.SaveChangesAsync();
 
-        await _episodeSearchIndexer.DeleteAsync(episode.Id);
+        // Remove from search index - with error handling
+        try
+        {
+            await _episodeSearchIndexer.DeleteAsync(episode.Id);
+            _logger.LogInformation("Successfully removed episode {EpisodeId} from search index", episode.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove episode {EpisodeId} from search index", episode.Id);
+            // Don't fail the operation if search index removal fails
+        }
+
         return true;
     }
 
     public async Task<bool> TrackViewAsync(EpisodeActionDto model)
     {
-        var view = new EpisodeView
+        try
         {
-            EpisodeId = model.EpisodeId,
-            UserId = model.UserId,
-            CreatorId = model.CreatorId,
-            CreatorUsername = model.CreatorUsername ?? "",
-            CreatorProfileImageUrl = model.CreatorAvatarUrl ?? "",
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _statsDb.EpisodeViews.Add(view);
-        await _statsDb.SaveChangesAsync();
-        return true;
-    }
-
-
-    public async Task<(bool HasUserLiked, int TotalLikes)>  ToggleLikeAsync(
-    EpisodeActionDto model)
-    {
-        var existing = await _statsDb.EpisodeLikes
-            .FirstOrDefaultAsync(l => l.EpisodeId == model.EpisodeId && l.UserId == model.UserId);
-
-        if (existing != null)
-        {
-            _statsDb.EpisodeLikes.Remove(existing);
-            await _statsDb.SaveChangesAsync();
-
-            var newCount = await _statsDb.EpisodeLikes.CountAsync(l => l.EpisodeId == model.EpisodeId);
-            return (false, newCount);
-        }
-        else
-        {
-            var like = new EpisodeLike
+            var view = new EpisodeView
             {
                 EpisodeId = model.EpisodeId,
                 UserId = model.UserId,
                 CreatorId = model.CreatorId,
-                CreatorUsername = model.CreatorUsername?? "",
+                CreatorUsername = model.CreatorUsername ?? "",
                 CreatorProfileImageUrl = model.CreatorAvatarUrl ?? "",
                 CreatedAt = DateTime.UtcNow
             };
 
-            _statsDb.EpisodeLikes.Add(like);
+            _statsDb.EpisodeViews.Add(view);
             await _statsDb.SaveChangesAsync();
-
-            var newCount = await _statsDb.EpisodeLikes.CountAsync(l => l.EpisodeId == model.EpisodeId);
-            return (true, newCount);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to track view for episode {EpisodeId}", model.EpisodeId);
+            return false;
         }
     }
 
+    public async Task<(bool HasUserLiked, int TotalLikes)> ToggleLikeAsync(EpisodeActionDto model)
+    {
+        try
+        {
+            var existing = await _statsDb.EpisodeLikes
+                .FirstOrDefaultAsync(l => l.EpisodeId == model.EpisodeId && l.UserId == model.UserId);
+
+            if (existing != null)
+            {
+                // Unlike
+                _statsDb.EpisodeLikes.Remove(existing);
+                await _statsDb.SaveChangesAsync();
+
+                var newCount = await _statsDb.EpisodeLikes.CountAsync(l => l.EpisodeId == model.EpisodeId);
+                return (false, newCount);
+            }
+            else
+            {
+                // Like
+                var like = new EpisodeLike
+                {
+                    EpisodeId = model.EpisodeId,
+                    UserId = model.UserId,
+                    CreatorId = model.CreatorId,
+                    CreatorUsername = model.CreatorUsername ?? "",
+                    CreatorProfileImageUrl = model.CreatorAvatarUrl ?? "",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _statsDb.EpisodeLikes.Add(like);
+                await _statsDb.SaveChangesAsync();
+
+                var newCount = await _statsDb.EpisodeLikes.CountAsync(l => l.EpisodeId == model.EpisodeId);
+                return (true, newCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to toggle like for episode {EpisodeId}", model.EpisodeId);
+            throw;
+        }
+    }
 }

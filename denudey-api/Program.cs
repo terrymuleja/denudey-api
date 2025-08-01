@@ -16,12 +16,10 @@ using Denudey.Api.Services.Infrastructure.Sharding.Implementations;
 using Denudey.Application.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using System.Collections;
-
 
 namespace denudey_api
 {
@@ -32,7 +30,7 @@ namespace denudey_api
             var builder = WebApplication.CreateBuilder(args);
             builder.Configuration
                         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                        .AddEnvironmentVariables(); 
+                        .AddEnvironmentVariables();
 
             builder.Services.Configure<CloudinarySettings>(
                 builder.Configuration.GetSection("Cloudinary"));
@@ -69,6 +67,7 @@ namespace denudey_api
                 );
             });
 
+            // ✅ Fixed Elasticsearch configuration
             builder.Services.AddSingleton(sp =>
             {
                 var apiKey = builder.Configuration["ELASTICSEARCH_APIKEY"];
@@ -81,16 +80,14 @@ namespace denudey_api
                 }
                 Console.WriteLine("=== End Debug ===");
 
-                var config = sp.GetRequiredService<IConfiguration>();
                 ElasticsearchClientSettings settings;
 
-                
                 if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(endpoint))
                 {
                     var uri = new Uri(endpoint);
                     settings = new ElasticsearchClientSettings(uri)
                         .Authentication(new ApiKey(apiKey))
-                        .DefaultIndex("episodes");
+                        .DefaultIndex("scamflix_episodes"); // ✅ Fixed: Match the index name used in your code
                 }
                 else
                 {
@@ -100,18 +97,19 @@ namespace denudey_api
                 return new ElasticsearchClient(settings);
             });
 
+            // ✅ Register ElasticIndexInitializer properly
+            builder.Services.AddSingleton<ElasticIndexInitializer>();
 
+            // Register services
             builder.Services.AddScoped<IEpisodeStatsService, EpisodeStatsService>();
             builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();
-
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
-            
 
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddHostedService<TokenCleanupService>();
-            
+
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
             builder.Services.AddScoped<IProductsService, ProductsService>();
             builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
@@ -178,6 +176,32 @@ namespace denudey_api
 
             var app = builder.Build();
 
+            // ✅ Fixed: Proper async handling for index creation
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = app.Services.CreateScope();
+                        var indexInit = scope.ServiceProvider.GetRequiredService<ElasticIndexInitializer>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                        logger.LogInformation("Creating Elasticsearch index...");
+                        await indexInit.CreateEpisodesIndexAsync();
+                        logger.LogInformation("Elasticsearch index creation completed.");
+                    }
+                    catch (Exception ex)
+                    {
+                        using var scope = app.Services.CreateScope();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(ex, "Failed to create Elasticsearch index during startup");
+                        // Don't throw here - let the app start even if ES indexing fails
+                    }
+                });
+            });
+
+            // Database seeding
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

@@ -8,22 +8,22 @@ using Denudey.Api.Domain.Entities;
 using Denudey.Api.Models;
 using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.QueryDsl;
 
 namespace Denudey.Application.Services
 {
     public class EpisodeSearchIndexer(ElasticsearchClient elastic, IEpisodeStatsService stats) : IEpisodeSearchIndexer
-    { 
+    {
         public async Task IndexAsync(ScamflixEpisode episode)
         {
             var dto = new ScamFlixEpisodeSearchDto
             {
                 Id = episode.Id,
-                Title = episode.Title,
+                Title = episode.Title ?? "",
                 Tags = string.IsNullOrWhiteSpace(episode.Tags)
                         ? new List<string>()
                         : episode.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-                ImageUrl = episode.ImageUrl,
-
+                ImageUrl = episode.ImageUrl ?? "",
                 CreatorId = episode.Creator?.Id ?? episode.CreatedBy,
                 CreatorUsername = episode.Creator?.Username ?? "unknown",
                 CreatorAvatarUrl = episode.Creator?.ProfileImageUrl ?? string.Empty,
@@ -50,33 +50,46 @@ namespace Denudey.Application.Services
         }
 
         public async Task<PagedResult<ScamFlixEpisodeDto>> SearchEpisodesAsync(
-    string? search,
-    Guid? currentUserId,
-    int page,
-    int pageSize)
+            string? search,
+            Guid? currentUserId,
+            int page,
+            int pageSize)
         {
-            var response = await elastic.SearchAsync<ScamFlixEpisodeSearchDto>(s => s
-                .Indices("scamflix_episodes")
-                .From((page - 1) * pageSize)
-                .Size(pageSize)
-                .Query(q => q
-                    .MultiMatch(m => m
-                        .Fields(new[] { "title", "tags" })
-                        .Query(search)
-                    )
-                )
-                .Sort(s => s
-                    .Field(f => f
-                        .Field("createdAt")
-                        .Order(SortOrder.Desc)
-                    )
-                )
-            );
+            // Build the search request
+            var searchRequest = new SearchRequest<ScamFlixEpisodeSearchDto>("scamflix_episodes")
+            {
+                From = (page - 1) * pageSize,
+                Size = pageSize,
+                Sort = new[]
+                {
+                    new SortOptions
+                    {
+                        Field = new FieldSort(new Field("createdAt")) { Order = SortOrder.Desc }
+                    }
+                }
+            };
+
+            // Handle search query - this was the main issue
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                searchRequest.Query = new MultiMatchQuery
+                {
+                    Query = search,
+                    Fields = new[] { "title", "tags", "creatorUsername" }
+                };
+            }
+            else
+            {
+                // When no search term, return all episodes
+                searchRequest.Query = new MatchAllQuery();
+            }
+
+            var response = await elastic.SearchAsync<ScamFlixEpisodeSearchDto>(searchRequest);
 
             if (!response.IsValidResponse)
                 throw new Exception("Elastic search failed: " + response.DebugInformation);
 
-            var hits = response.Hits.Select(hit => hit.Source).ToList();
+            var hits = response.Documents.ToList();
             var episodeIds = hits.Select(e => e.Id).ToList();
             var statsMap = await stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
 
@@ -107,7 +120,5 @@ namespace Denudey.Application.Services
                 TotalItems = (int)response.Total
             };
         }
-
     }
-
 }
