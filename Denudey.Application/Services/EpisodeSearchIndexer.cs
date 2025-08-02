@@ -9,10 +9,11 @@ using Denudey.Api.Models;
 using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
+using Microsoft.Extensions.Logging;
 
 namespace Denudey.Application.Services
 {
-    public class EpisodeSearchIndexer(ElasticsearchClient elastic, IEpisodeStatsService stats) : IEpisodeSearchIndexer
+    public class EpisodeSearchIndexer(ElasticsearchClient elastic, IEpisodeStatsService stats, ILogger<EpisodeSearchIndexer> logger) : IEpisodeSearchIndexer
     {
         public async Task IndexAsync(ScamflixEpisode episode)
         {
@@ -50,75 +51,139 @@ namespace Denudey.Application.Services
         }
 
         public async Task<PagedResult<ScamFlixEpisodeDto>> SearchEpisodesAsync(
-            string? search,
-            Guid? currentUserId,
-            int page,
-            int pageSize)
+    string? search,
+    Guid? currentUserId,
+    int page,
+    int pageSize)
         {
-            // Build the search request
-            var searchRequest = new SearchRequest<ScamFlixEpisodeSearchDto>("scamflix_episodes")
+            try
             {
-                From = (page - 1) * pageSize,
-                Size = pageSize,
-                Sort = new[]
+                // Build the search request
+                var searchRequest = new SearchRequest<ScamFlixEpisodeSearchDto>("scamflix_episodes")
                 {
-                    new SortOptions
+                    From = (page - 1) * pageSize,
+                    Size = pageSize,
+                    Sort = new[]
                     {
-                        Field = new FieldSort(new Field("createdAt")) { Order = SortOrder.Desc }
-                    }
+                new SortOptions
+                {
+                    Field = new FieldSort(new Field("createdAt")) { Order = SortOrder.Desc }
                 }
-            };
+            }
+                };
 
-            // Handle search query - this was the main issue
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                searchRequest.Query = new MultiMatchQuery
+                // Handle search query
+                if (!string.IsNullOrWhiteSpace(search))
                 {
-                    Query = search,
-                    Fields = new[] { "title", "tags", "creatorUsername" }
+                    searchRequest.Query = new MultiMatchQuery
+                    {
+                        Query = search,
+                        Fields = new[] { "title", "tags", "creatorUsername" }
+                    };
+                }
+                else
+                {
+                    searchRequest.Query = new MatchAllQuery();
+                }
+
+                var response = await elastic.SearchAsync<ScamFlixEpisodeSearchDto>(searchRequest);
+
+                // Handle Elasticsearch errors properly
+                if (!response.IsValidResponse)
+                {
+                    // Log the error but don't throw - return empty result
+                    logger?.LogWarning("Elasticsearch search failed: {Error}", response.DebugInformation);
+
+                    // Check if it's an index not found error (common when no data exists)
+                    if (response.ApiCallDetails?.HttpStatusCode == 404)
+                    {
+                        logger?.LogInformation("Elasticsearch index 'scamflix_episodes' not found - returning empty result");
+                    }
+
+                    return new PagedResult<ScamFlixEpisodeDto>
+                    {
+                        Items = new List<ScamFlixEpisodeDto>(),
+                        Page = page,
+                        PageSize = pageSize,
+                        TotalItems = 0,
+                        HasNextPage = false
+                    };
+                }
+
+                // Handle empty results (this is normal, not an error)
+                var hits = response.Documents?.ToList() ?? new List<ScamFlixEpisodeSearchDto>();
+                var totalItems = (int)response.Total;
+
+                if (!hits.Any())
+                {
+                    // This is perfectly normal - just no episodes match the criteria
+                    return new PagedResult<ScamFlixEpisodeDto>
+                    {
+                        Items = new List<ScamFlixEpisodeDto>(),
+                        Page = page,
+                        PageSize = pageSize,
+                        TotalItems = 0,
+                        HasNextPage = false
+                    };
+                }
+
+                // Process the results
+                var episodeIds = hits.Select(e => e.Id).ToList();
+
+                // Handle stats service gracefully too
+                Dictionary<int, EpisodeStatsDto> statsMap;
+                try
+                {
+                    statsMap = await stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
+                }
+                catch (Exception statsEx)
+                {
+                    logger?.LogWarning(statsEx, "Failed to get episode stats, using defaults");
+                    statsMap = new Dictionary<int, EpisodeStatsDto>();
+                }
+
+                var items = hits.Select(e =>
+                {
+                    statsMap.TryGetValue(e.Id, out var stat);
+                    return new ScamFlixEpisodeDto
+                    {
+                        Id = e.Id,
+                        Title = e.Title ?? "Untitled",
+                        Tags = string.Join(", ", e.Tags ?? new List<string>()),
+                        ImageUrl = e.ImageUrl ?? "",
+                        CreatedAt = e.CreatedAt,
+                        CreatorId = e.CreatorId,
+                        CreatedBy = e.CreatorUsername ?? "Unknown",
+                        CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
+                        Likes = stat?.Likes ?? 0,
+                        Views = stat?.Views ?? 0,
+                        HasUserLiked = stat?.UserHasLiked ?? false
+                    };
+                }).ToList();
+
+                return new PagedResult<ScamFlixEpisodeDto>
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalItems = totalItems,
+                    HasNextPage = totalItems > (page * pageSize)
                 };
             }
-            else
+            catch (Exception ex)
             {
-                // When no search term, return all episodes
-                searchRequest.Query = new MatchAllQuery();
-            }
+                // Log the error but return empty result instead of throwing
+                logger?.LogError(ex, "Exception in SearchEpisodesAsync - returning empty result");
 
-            var response = await elastic.SearchAsync<ScamFlixEpisodeSearchDto>(searchRequest);
-
-            if (!response.IsValidResponse)
-                throw new Exception("Elastic search failed: " + response.DebugInformation);
-
-            var hits = response.Documents.ToList();
-            var episodeIds = hits.Select(e => e.Id).ToList();
-            var statsMap = await stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
-
-            var items = hits.Select(e =>
-            {
-                statsMap.TryGetValue(e.Id, out var stat);
-                return new ScamFlixEpisodeDto
+                return new PagedResult<ScamFlixEpisodeDto>
                 {
-                    Id = e.Id,
-                    Title = e.Title,
-                    Tags = string.Join(", ", e.Tags),
-                    ImageUrl = e.ImageUrl,
-                    CreatedAt = e.CreatedAt,
-                    CreatorId = e.CreatorId,
-                    CreatedBy = e.CreatorUsername,
-                    CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
-                    Likes = stat?.Likes ?? 0,
-                    Views = stat?.Views ?? 0,
-                    HasUserLiked = stat?.UserHasLiked ?? false
+                    Items = new List<ScamFlixEpisodeDto>(),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalItems = 0,
+                    HasNextPage = false
                 };
-            }).ToList();
-
-            return new PagedResult<ScamFlixEpisodeDto>
-            {
-                Items = items,
-                Page = page,
-                PageSize = pageSize,
-                TotalItems = (int)response.Total
-            };
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Denudey.Api.Controllers;
 [Authorize]
@@ -22,7 +23,8 @@ namespace Denudey.Api.Controllers;
 public class EpisodesController(ApplicationDbContext db,
     EpisodeService episodesService,
     EpisodeQueryService episodeQueryService,
-    IEpisodeSearchIndexer searchService) : DenudeyControlerBase
+    IEpisodeSearchIndexer searchService,
+    ILogger<EpisodesController> logger) : DenudeyControlerBase
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
@@ -83,13 +85,31 @@ public class EpisodesController(ApplicationDbContext db,
     /// <returns></returns>
     [HttpGet]
     public async Task<ActionResult<PagedResult<ScamFlixEpisodeDto>>> GetAll(
-        [FromQuery] string? search,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+    [FromQuery] string? search,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
     {
-        var userId = GetUserId();
-        var result = await searchService.SearchEpisodesAsync(search, userId, page, pageSize);
-        return Ok(result);
+        try
+        {
+            // Validate parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+            var userId = GetUserId();
+            var result = await searchService.SearchEpisodesAsync(search, userId, page, pageSize);
+
+            // Always return 200 OK, even if no results
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Unexpected error in GetAll episodes endpoint");
+
+            return StatusCode(500, new
+            {
+                error = "An unexpected error occurred while retrieving episodes"
+            });
+        }
     }
 
     [HttpDelete("{id:int}")]
