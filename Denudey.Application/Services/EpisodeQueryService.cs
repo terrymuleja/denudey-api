@@ -7,6 +7,7 @@ using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Models;
 using Denudey.Api.Services.Infrastructure.Sharding;
 using Denudey.Application.Interfaces;
+using Elastic.Clients.Elasticsearch.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -57,7 +58,17 @@ namespace Denudey.Application.Services
                     .ToListAsync();
 
                 var episodeIds = episodes.Select(e => e.Id).ToList();
-                var statsMap = await _stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
+                Dictionary<int, EpisodeStatsDto> statsMap;
+                try
+                {
+                    statsMap = await _stats.GetStatsForEpisodesAsync(episodeIds, currentUserId);
+                }
+                catch (Exception statsEx)
+                {
+                    _logger?.LogWarning(statsEx, "Failed to get episode stats, using defaults");
+                    statsMap = new Dictionary<int, EpisodeStatsDto>();
+                }
+                
 
                 var items = episodes.Select(e =>
                 {

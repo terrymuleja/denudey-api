@@ -102,23 +102,44 @@ public class EpisodeService
             _logger.LogWarning("User {UserId} attempted to delete episode {EpisodeId} without permission", userId, episodeId);
             return false;
         }
-
-        db.ScamflixEpisodes.Remove(episode);
-        await db.SaveChangesAsync();
-
-        // Remove from search index - with error handling
+        // 1. delete image
+        // Step 1: Delete from Cloudinary
         try
         {
-            await _episodeSearchIndexer.DeleteAsync(episode.Id);
-            _logger.LogInformation("Successfully removed episode {EpisodeId} from search index", episode.Id);
+            if (!string.IsNullOrEmpty(episode.ImageUrl))
+            {
+                var deleted = await _cloudinaryService.DeleteImageFromCloudinary(episode.ImageUrl); // You need to implement this
+                _logger.LogInformation("Deleted episode image from Cloudinary: {PhotoUrl}", episode.ImageUrl);
+                if (deleted)
+                {
+                    // 2. delete from db 
+                    db.ScamflixEpisodes.Remove(episode);
+                    await db.SaveChangesAsync();
+
+                    // 3. Remove from search index - with error handling
+                    try
+                    {
+                        await _episodeSearchIndexer.DeleteAsync(episode.Id);
+                        _logger.LogInformation("Successfully removed episode {EpisodeId} from search index", episode.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to remove episode {EpisodeId} from search index", episode.Id);
+                        // Don't fail the operation if search index removal fails
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to remove episode {EpisodeId} from search index", episode.Id);
-            // Don't fail the operation if search index removal fails
+            _logger.LogError(ex, "Failed to delete Cloudinary image for episode {EpisodeId}", episodeId);
+            return false; // You can choose to fail hard or soft here
         }
-
-        return true;
+       
     }
 
     public async Task<bool> TrackViewAsync(EpisodeActionDto model)

@@ -29,38 +29,38 @@ public class EpisodesController(ApplicationDbContext db,
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
     {
+        // Basic validation can stay in controller for quick fail
         if (string.IsNullOrWhiteSpace(dto.Title) || dto.Title.Length < 5)
             return BadRequest(new { error = "Title must be at least 5 characters long." });
 
         if (dto.Title.Length > 35)
             return BadRequest(new { error = "Title must be max 35 characters long." });
 
-
         if (string.IsNullOrWhiteSpace(dto.ImageUrl))
             return BadRequest(new { error = "Image URL is required." });
 
-       
-
-        var userId = GetUserId();
-
-        if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.ImageUrl))
-            return BadRequest("Title and image URL are required.");
-
-        var episode = new ScamflixEpisode
+        try
         {
-            Title = dto.Title,
-            Tags = string.Join(",", dto.Tags ?? []),
-            ImageUrl = dto.ImageUrl,
-            CreatedBy = userId, // Replace with real user ID if needed
-            CreatedAt = DateTime.UtcNow
-        };
+            var userId = GetUserId();
+           
+            // Prepare tags as comma-separated string
+            var tags = string.Join(",", dto.Tags ?? []);
 
-        db.ScamflixEpisodes.Add(episode);
-        await db.SaveChangesAsync();
+            // Delegate to service layer
+            var episode = await episodesService.CreateEpisodeAsync(userId, dto.Title, tags, dto.ImageUrl);
 
-        return Ok(new { episode.Id });
+            return Ok(episode);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating episode for user {UserId}", GetUserId());
+            return StatusCode(500, new { error = "An error occurred while creating the episode." });
+        }
     }
-
 
     [HttpGet(template: "mine")]
     public async Task<IActionResult> GetMyEpisodes(
