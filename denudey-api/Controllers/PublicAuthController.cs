@@ -18,7 +18,7 @@ namespace Denudey.Api.Controllers;
 [AllowAnonymous]
 [ApiController]
 [Route("api/auth")]
-public class PublicAuthController(ApplicationDbContext db, ITokenService tokenService, IConfiguration configuration) : ControllerBase
+public class PublicAuthController(ApplicationDbContext db, ITokenService tokenService, IConfiguration configuration, ILogger<PublicAuthController> logger) : ControllerBase
 {
     
     [HttpPost("register")]
@@ -134,6 +134,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
         if (storedToken == null || storedToken.Revoked != null || storedToken.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Invalid or expired token" });
 
+        logger.LogInformation($"token found: {storedToken.Token}");
         storedToken.Revoked = DateTime.UtcNow;
 
         var newToken = new RefreshToken
@@ -147,7 +148,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
         db.RefreshTokens.Add(newToken);
         await db.SaveChangesAsync();
         var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester"; // fallback if null
-
+        logger.LogInformation($"new token: {newToken.Token}");
         return Ok(new AuthTokenResponse(
             tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
             newToken.Token
