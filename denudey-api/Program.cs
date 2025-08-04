@@ -27,20 +27,38 @@ namespace denudey_api
     {
         public static async Task Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
-            builder.Configuration
-                        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                        .AddEnvironmentVariables();
+            Console.WriteLine("=== CONSOLE TEST: Program.cs is running ===");
+            Console.WriteLine($"Time: {DateTime.UtcNow}");
 
+            var builder = WebApplication.CreateBuilder(args);
+
+            // ✅ 1. LOGGING FIRST - with proper configuration
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole(options =>
+            {
+                options.LogToStandardErrorThreshold = LogLevel.Trace;
+            });
+            builder.Logging.AddDebug();
+            builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+            Console.WriteLine("=== Logging providers configured ===");
+
+            // ✅ 2. CONFIGURATION SECOND
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
+
+            // ✅ 3. BASIC SERVICES (that don't depend on logging)
+            builder.Services.AddHttpContextAccessor();
+            builder.WebHost.UseUrls("http://0.0.0.0:8080");
+
+            // ✅ 4. CONFIGURATION BINDING
             builder.Services.Configure<CloudinarySettings>(
                 builder.Configuration.GetSection("Cloudinary"));
 
-            // Railway needs the app to listen on port 8080
-            builder.WebHost.UseUrls("http://0.0.0.0:8080");
+            Console.WriteLine("=== About to configure DbContext ===");
 
-            // Add services to the container.
-            builder.Services.AddHttpContextAccessor();
-
+            // ✅ 5. DATABASE CONTEXTS
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             {
                 options.UseNpgsql(
@@ -48,7 +66,6 @@ namespace denudey_api
                     npgsqlOptions =>
                     {
                         npgsqlOptions.CommandTimeout(30);
-                        // Using custom execution strategy instead of built-in retry
                         npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
                     }
                 );
@@ -61,24 +78,23 @@ namespace denudey_api
                     npgsqlOptions =>
                     {
                         npgsqlOptions.CommandTimeout(30);
-                        // Using custom execution strategy instead of built-in retry
                         npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
                     }
                 );
             });
 
-            // ✅ Fixed Elasticsearch configuration
+            Console.WriteLine("=== DbContext configured ===");
+
+            // ✅ 6. ELASTICSEARCH (SINGLETON - before scoped services)
             builder.Services.AddSingleton(sp =>
             {
+                Console.WriteLine("=== Configuring Elasticsearch ===");
+
                 var apiKey = builder.Configuration["ELASTICSEARCH_APIKEY"];
                 var endpoint = builder.Configuration["ELASTICSEARCH_ENDPOINT"];
 
-                Console.WriteLine("=== Environment Variables Debug ===");
-                foreach (DictionaryEntry env in Environment.GetEnvironmentVariables())
-                {
-                    Console.WriteLine($"var {env.Key}: {env.Value}");
-                }
-                Console.WriteLine("=== End Debug ===");
+                Console.WriteLine($"API Key present: {!string.IsNullOrEmpty(apiKey)}");
+                Console.WriteLine($"Endpoint: {endpoint ?? "NOT SET"}");
 
                 ElasticsearchClientSettings settings;
 
@@ -87,34 +103,42 @@ namespace denudey_api
                     var uri = new Uri(endpoint);
                     settings = new ElasticsearchClientSettings(uri)
                         .Authentication(new ApiKey(apiKey))
-                        .DefaultIndex("scamflix_episodes"); // ✅ Fixed: Match the index name used in your code
+                        .DefaultIndex("scamflix_episodes");
+
+                    Console.WriteLine("Elasticsearch client configured successfully");
                 }
                 else
                 {
+                    Console.WriteLine("ERROR: Missing Elasticsearch API key or endpoint");
                     throw new InvalidOperationException("Missing Elasticsearch API key or endpoint");
                 }
 
                 return new ElasticsearchClient(settings);
             });
 
-            // ✅ Register ElasticIndexInitializer properly
             builder.Services.AddSingleton<ElasticIndexInitializer>();
 
-            // Register services
+            Console.WriteLine("=== Registering SCOPED services (after logging is ready) ===");
+
+            // ✅ 7. SCOPED SERVICES (that need logging) - Register these AFTER logging is fully configured
+            builder.Services.AddScoped<ITokenService, TokenService>(); // ← This should work now!
+
             builder.Services.AddScoped<IEpisodeStatsService, EpisodeStatsService>();
             builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 
-            builder.Services.AddScoped<ITokenService, TokenService>();
-            builder.Services.AddHostedService<TokenCleanupService>();
-
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
             builder.Services.AddScoped<IProductsService, ProductsService>();
             builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
 
-            // ✅ Add Authentication
+            // ✅ 8. HOSTED SERVICES (background services)
+            builder.Services.AddHostedService<TokenCleanupService>();
+
+            Console.WriteLine("=== Configuring Authentication ===");
+
+            // ✅ 9. AUTHENTICATION & AUTHORIZATION
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -126,13 +150,14 @@ namespace denudey_api
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-                        )
+                        ),
+                        ClockSkew = TimeSpan.Zero
                     };
                 });
 
-            // ✅ Add Authorization
             builder.Services.AddAuthorization();
 
+            // ✅ 10. MVC & API SERVICES
             builder.Services.AddControllers();
             builder.Services.AddCors(options =>
             {
@@ -149,7 +174,6 @@ namespace denudey_api
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "denudey-api", Version = "v1" });
 
-                // ✅ Add Bearer authentication
                 var jwtSecurityScheme = new OpenApiSecurityScheme
                 {
                     Scheme = "bearer",
@@ -167,64 +191,82 @@ namespace denudey_api
                 };
 
                 c.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
-
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     { jwtSecurityScheme, Array.Empty<string>() }
                 });
             });
 
+            Console.WriteLine("=== Building app ===");
+
             var app = builder.Build();
 
-            // ✅ Fixed: Proper async handling for index creation
-            app.Lifetime.ApplicationStarted.Register(() =>
-            {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        using var scope = app.Services.CreateScope();
-                        var indexInit = scope.ServiceProvider.GetRequiredService<ElasticIndexInitializer>();
-                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            Console.WriteLine("=== App built successfully ===");
 
-                        logger.LogInformation("Creating Elasticsearch index...");
-                        await indexInit.CreateEpisodesIndexAsync();
-                        logger.LogInformation("Elasticsearch index creation completed.");
-                    }
-                    catch (Exception ex)
-                    {
-                        using var scope = app.Services.CreateScope();
-                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                        logger.LogError(ex, "Failed to create Elasticsearch index during startup");
-                        // Don't throw here - let the app start even if ES indexing fails
-                    }
-                });
-            });
+            // ✅ TEST NATURAL LOGGING
+            using (var scope = app.Services.CreateScope())
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("🎯 Program logger test - natural injection");
+
+                // Test TokenService with natural DI
+                Console.WriteLine("=== Testing TokenService with natural DI ===");
+                var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+                Console.WriteLine("✅ TokenService created with natural DI");
+            }
 
             // Database seeding
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                logger.LogInformation("Seeding roles...");
+
+                Console.WriteLine("=== Starting database seeding ===");
+                logger.LogInformation("🌱 Seeding roles...");
                 await RoleSeeder.SeedAsync(db);
-                logger.LogInformation("Seeding completed.");
+                Console.WriteLine("=== Database seeding completed ===");
+                logger.LogInformation("✅ Seeding completed.");
             }
 
-            // Configure the HTTP request pipeline.
+            // Elasticsearch startup
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        Console.WriteLine("=== Starting Elasticsearch index creation ===");
+                        using var scope = app.Services.CreateScope();
+                        var indexInit = scope.ServiceProvider.GetRequiredService<ElasticIndexInitializer>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                        logger.LogInformation("📊 Creating Elasticsearch index...");
+                        await indexInit.CreateEpisodesIndexAsync();
+                        logger.LogInformation("✅ Elasticsearch index creation completed.");
+                    }
+                    catch (Exception ex)
+                    {
+                        using var scope = app.Services.CreateScope();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(ex, "❌ Failed to create Elasticsearch index during startup");
+                    }
+                });
+            });
+
+            Console.WriteLine("=== Configuring middleware pipeline ===");
+
             if (app.Environment.IsDevelopment() || true)
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
-            app.UseCors(); // Must be placed before UseAuthorization and MapControllers
-
-            // ✅ Use authentication and authorization
+            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
+
+            Console.WriteLine("=== 🚀 APPLICATION READY - LISTENING ON http://0.0.0.0:8080 🚀 ===");
 
             app.Run();
         }

@@ -63,6 +63,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+
         var user = await db.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
@@ -100,7 +101,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
             Token = tokenService.GenerateRefreshToken(),
             UserId = user.Id,
             DeviceId = request.DeviceId,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:RefreshTokenExpiresInDays"]))
         };
         var name = user.Username;
         var email = user.Email;
@@ -124,6 +125,10 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
     [HttpPost("refresh")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest request)
     {
+
+        logger.LogInformation("🔁 Received refresh token: {token}", request.Token);
+        logger.LogInformation("🔁 Received device ID: {deviceId}", request.DeviceId);
+
         var storedToken = await db.RefreshTokens
             .Include(rt => rt.User)
             .ThenInclude(u => u.UserRoles)
