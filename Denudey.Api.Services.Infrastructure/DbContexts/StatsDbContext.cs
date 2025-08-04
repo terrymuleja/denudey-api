@@ -12,5 +12,17 @@ namespace Denudey.Api.Services.Infrastructure.DbContexts
     {
         public DbSet<EpisodeView> EpisodeViews => Set<EpisodeView>();
         public DbSet<EpisodeLike> EpisodeLikes => Set<EpisodeLike>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<EpisodeLike>()
+                .HasKey(el => new { el.UserId, el.EpisodeId }); // Composite PK
+
+            modelBuilder.Entity<EpisodeView>()
+                .HasKey(ev => ev.Id);
+        }
+
     }
+
+
 }

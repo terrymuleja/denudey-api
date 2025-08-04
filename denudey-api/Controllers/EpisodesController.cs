@@ -137,6 +137,7 @@ public class EpisodesController(ApplicationDbContext db,
         {
             
             var userId = GetUserId();
+            model.UserId = userId;
             var result = await episodesService.ToggleLikeAsync(model);
             return Ok(new { result.HasUserLiked, result.TotalLikes });
         }
@@ -150,8 +151,7 @@ public class EpisodesController(ApplicationDbContext db,
     [HttpPost("{id}/view")]
     public async Task<IActionResult> TrackView(int id, [FromBody] EpisodeActionDto model)
     {
-        var userId = GetUserId();
-        var role = GetUserRole();
+        var userId = GetUserId();        
         var result = await episodesService.TrackViewAsync(model);
         return result ? Ok() : BadRequest();
     }
