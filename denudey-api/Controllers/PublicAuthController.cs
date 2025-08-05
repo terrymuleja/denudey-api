@@ -125,7 +125,6 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
     [HttpPost("refresh")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshRequest request)
     {
-
         logger.LogInformation("🔁 Received refresh token: {token}", request.Token);
         logger.LogInformation("🔁 Received device ID: {deviceId}", request.DeviceId);
 
@@ -135,13 +134,15 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(rt => rt.Token == request.Token && rt.DeviceId == request.DeviceId);
 
-
         if (storedToken == null || storedToken.Revoked != null || storedToken.ExpiresAt < DateTime.UtcNow)
+        {
+            logger.LogWarning($"Token {request.Token} was expired");
             return Unauthorized(new { message = "Invalid or expired token" });
+        }
 
         logger.LogInformation($"token found: {storedToken.Token}");
-        storedToken.Revoked = DateTime.UtcNow;
 
+        // ✅ Create new token FIRST
         var newToken = new RefreshToken
         {
             Token = tokenService.GenerateRefreshToken(),
@@ -151,16 +152,36 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
         };
 
         db.RefreshTokens.Add(newToken);
-        await db.SaveChangesAsync();
-        var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester"; // fallback if null
-        logger.LogInformation($"new token: {newToken.Token}");
-        return Ok(new AuthTokenResponse(
-            tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
-            newToken.Token
-        ));
+
+        // ✅ Use transaction to ensure atomicity
+        using var transaction = await db.Database.BeginTransactionAsync();
+        try
+        {
+            await db.SaveChangesAsync(); // Save new token first
+
+            // ✅ Only revoke old token AFTER new one is saved
+            storedToken.Revoked = DateTime.UtcNow;
+            await db.SaveChangesAsync(); // Save revocation
+
+            await transaction.CommitAsync();
+
+            var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester";
+            logger.LogInformation($"new token: {newToken.Token}");
+
+            return Ok(new AuthTokenResponse(
+                tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
+                newToken.Token
+            ));
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError($"Token refresh failed: {ex.Message}");
+            return StatusCode(500, new { message = "Token refresh failed" });
+        }
     }
 
-    
+
     // Require valid token
     [HttpGet("validate")]
     public IActionResult ValidateToken()
@@ -204,12 +225,14 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
 
             return Ok(new { valid = true, userId, role });
         }
-        catch (SecurityTokenExpiredException)
+        catch (SecurityTokenExpiredException ste)
         {
+            logger.LogWarning($"++++++++++++++++++ Token expired: {ste.Message}");
             return Unauthorized(new { valid = false, message = "Token expired" });
         }
         catch(Exception ex)
         {
+            logger.LogWarning($"++++++++++++++++++ Token expired {ex.Message}");
             return Unauthorized(new { valid = false, message = "Token invalid" });
         }
     }
