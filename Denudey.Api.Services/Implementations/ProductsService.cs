@@ -46,7 +46,7 @@ namespace Denudey.Api.Services.Implementations
                 MainPhotoUrl = dto.MainPhotoUrl,
                 SecondaryPhotoUrls = dto.SecondaryPhotoUrls.Take(5).ToList(),
                 BodyPart = dto.BodyPart,
-                DeliveryOptions = dto.DeliveryOptions,
+                DeliveryOptions = dto.Deadlines,
                 FeePerDelivery = fee,
                 CreatedBy = userId
             };
@@ -64,7 +64,7 @@ namespace Denudey.Api.Services.Implementations
             product.MainPhotoUrl = dto.MainPhotoUrl;
             product.SecondaryPhotoUrls = dto.SecondaryPhotoUrls.Take(5).ToList();
             product.BodyPart = dto.BodyPart;
-            product.DeliveryOptions = dto.DeliveryOptions;
+            product.DeliveryOptions = dto.Deadlines;
             product.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();

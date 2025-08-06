@@ -8,7 +8,7 @@ namespace Denudey.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Model")]
+    [Authorize(Roles = "model")]
     public class ProductsController (IProductsService service) : DenudeyControlerBase
     {
         [HttpPost]

@@ -14,7 +14,7 @@ namespace Denudey.Api.Domain.DTOs
         public string MainPhotoUrl { get; set; } = string.Empty;
         public List<string> SecondaryPhotoUrls { get; set; } = new();
         public string BodyPart { get; set; } = string.Empty; // torso, belly, legs, arms
-        public List<string> DeliveryOptions { get; set; } = new(); // "3d", "48h", "24h"
+        public List<string> Deadlines { get; set; } = new(); // "3d", "48h", "24h"
     }
 
 }
