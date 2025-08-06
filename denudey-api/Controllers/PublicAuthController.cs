@@ -142,46 +142,46 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
 
         logger.LogInformation($"token found: {storedToken.Token}");
 
-        // ✅ Create new token FIRST
-        var newToken = new RefreshToken
-        {
-            Token = tokenService.GenerateRefreshToken(),
-            UserId = storedToken.UserId,
-            DeviceId = storedToken.DeviceId,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
-        };
+        // ✅ Use the execution strategy as the error message suggests
+        var strategy = db.Database.CreateExecutionStrategy();
 
-        db.RefreshTokens.Add(newToken);
-
-        // ✅ Use transaction to ensure atomicity
-        using var transaction = await db.Database.BeginTransactionAsync();
         try
         {
-            await db.SaveChangesAsync(); // Save new token first
+            var result = await strategy.ExecuteAsync(async () =>
+            {
+                // ✅ Create new token FIRST
+                var newToken = new RefreshToken
+                {
+                    Token = tokenService.GenerateRefreshToken(),
+                    UserId = storedToken.UserId,
+                    DeviceId = storedToken.DeviceId,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7)
+                };
 
-            // ✅ Only revoke old token AFTER new one is saved
-            storedToken.Revoked = DateTime.UtcNow;
-            await db.SaveChangesAsync(); // Save revocation
+                db.RefreshTokens.Add(newToken);
+                await db.SaveChangesAsync(); // Save new token first
 
-            await transaction.CommitAsync();
+                // ✅ Only revoke old token AFTER new one is saved
+                storedToken.Revoked = DateTime.UtcNow;
+                await db.SaveChangesAsync(); // Save revocation
 
-            var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester";
-            logger.LogInformation($"new token: {newToken.Token}");
+                var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester";
+                logger.LogInformation($"new token: {newToken.Token}");
 
-            return Ok(new AuthTokenResponse(
-                tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
-                newToken.Token
-            ));
+                return new AuthTokenResponse(
+                    tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
+                    newToken.Token
+                );
+            });
+
+            return Ok(result);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             logger.LogError($"Token refresh failed: {ex.Message}");
             return StatusCode(500, new { message = "Token refresh failed" });
         }
     }
-
-
     // Require valid token
     [HttpGet("validate")]
     public IActionResult ValidateToken()

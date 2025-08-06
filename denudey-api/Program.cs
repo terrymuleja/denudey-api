@@ -59,7 +59,8 @@ namespace denudey_api
             Console.WriteLine("=== About to configure DbContext ===");
 
             // ✅ 5. DATABASE CONTEXTS
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            // ApplicationDbContext (already correct)            
+            builder.Services.AddDbContextPool<ApplicationDbContext>(options =>
             {
                 options.UseNpgsql(
                     builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -67,11 +68,16 @@ namespace denudey_api
                     {
                         npgsqlOptions.CommandTimeout(30);
                         npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(10),
+                            errorCodesToAdd: null);
                     }
                 );
-            });
+            }, poolSize: 32);
 
-            builder.Services.AddDbContext<StatsDbContext>(options =>
+            // StatsDbContext (fix this one)
+            builder.Services.AddDbContextPool<StatsDbContext>(options =>
             {
                 options.UseNpgsql(
                     builder.Configuration.GetConnectionString("StatsDb"),
@@ -79,9 +85,14 @@ namespace denudey_api
                     {
                         npgsqlOptions.CommandTimeout(30);
                         npgsqlOptions.ExecutionStrategy(dependencies => new CustomNpgsqlExecutionStrategy(dependencies));
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(10),
+                            errorCodesToAdd: null);
                     }
                 );
-            });
+            }, poolSize: 32);
+            
 
             Console.WriteLine("=== DbContext configured ===");
 
