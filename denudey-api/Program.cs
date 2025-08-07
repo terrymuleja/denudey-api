@@ -138,10 +138,15 @@ namespace denudey_api
             builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
             builder.Services.AddScoped<EpisodeService>();
             builder.Services.AddScoped<EpisodeQueryService>();
+
+            builder.Services.AddScoped<IProductStatsService, ProductStatsService>();
+            builder.Services.AddScoped<IProductSearchIndexer, ProductSearchIndexer>();
+            builder.Services.AddScoped<IProductsService, ProductsService>();
+            builder.Services.AddScoped<ProductQueryService>();
+
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 
-            builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
-            builder.Services.AddScoped<IProductsService, ProductsService>();
+            builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();            
             builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
 
             // ✅ 8. HOSTED SERVICES (background services)

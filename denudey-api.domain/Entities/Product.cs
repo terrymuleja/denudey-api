@@ -9,12 +9,12 @@ namespace Denudey.Api.Domain.Entities
     public class Product
     {
         public Guid Id { get; set; }
-        public string ProductName { get; set; }
-        public string Description { get; set; }
+        public string ProductName { get; set; } = String.Empty;
+        public string Description { get; set; } = String.Empty;
         public List<string> Tags { get; set; } = new();
-        public string MainPhotoUrl { get; set; }
+        public string MainPhotoUrl { get; set; } = String.Empty;
         public List<string> SecondaryPhotoUrls { get; set; } = new();
-        public string BodyPart { get; set; }
+        public string BodyPart { get; set; } = String.Empty ;
         public List<string> DeliveryOptions { get; set; } = new();
         public decimal FeePerDelivery { get; set; }
 
