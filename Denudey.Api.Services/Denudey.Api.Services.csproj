@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Denudey.Api.Services.Infrastructure\Denudey.Api.Services.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Implementations\" />
+  </ItemGroup>
+
 </Project>

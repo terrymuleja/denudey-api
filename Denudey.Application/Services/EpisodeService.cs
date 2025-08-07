@@ -60,7 +60,7 @@ public class EpisodeService
         // Index episode for search - with error handling
         try
         {
-            await _episodeSearchIndexer.IndexAsync(episode);
+            await _episodeSearchIndexer.IndexEpisodeAsync(episode);
             _logger.LogInformation("Successfully indexed episode {EpisodeId}", episode.Id);
         }
         catch (Exception ex)
@@ -119,7 +119,7 @@ public class EpisodeService
                     // 3. Remove from search index - with error handling
                     try
                     {
-                        await _episodeSearchIndexer.DeleteAsync(episode.Id);
+                        await _episodeSearchIndexer.DeleteEpisodeFromIndexAsync(episode.Id);
                         _logger.LogInformation("Successfully removed episode {EpisodeId} from search index", episode.Id);
                     }
                     catch (Exception ex)

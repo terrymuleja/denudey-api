@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Services.Infrastructure.DbContexts;
-
+using Denudey.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace Denudey.Api.Services.Implementations
+namespace Denudey.Application.Services
 {
     
     public class ProductsService(ApplicationDbContext db) : IProductsService
@@ -19,10 +19,16 @@ namespace Denudey.Api.Services.Implementations
             return await db.Products.CountAsync(p => p.CreatedBy == userId && !p.IsExpired);
         }
 
-        public async Task<Product?> GetProductAsync(Guid id, Guid userId)
+        public async Task<Product?> GetProductForEditAsync(Guid id, Guid userId)
         {
             return await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.CreatedBy == userId);
         }
+
+        public async Task<Product?> GetProductAsync(Guid id)
+        {
+            return await db.Products.FirstOrDefaultAsync(p => p.Id == id);
+        }
+
 
         public async Task<bool> CanUnpublishAsync(Guid productId, Guid userId)
         {
@@ -72,7 +78,7 @@ namespace Denudey.Api.Services.Implementations
 
         public async Task PublishProductAsync(Guid id, Guid userId)
         {
-            var product = await GetProductAsync(id, userId)
+            var product = await GetProductForEditAsync(id, userId)
                 ?? throw new KeyNotFoundException("Product not found.");
 
             if (product.IsPublished)
@@ -85,7 +91,7 @@ namespace Denudey.Api.Services.Implementations
 
         public async Task UnpublishProductAsync(Guid id, Guid userId)
         {
-            var product = await GetProductAsync(id, userId)
+            var product = await GetProductForEditAsync(id, userId)
                 ?? throw new KeyNotFoundException("Product not found.");
 
             if (!product.IsPublished)
@@ -102,7 +108,7 @@ namespace Denudey.Api.Services.Implementations
 
         public async Task ExpireProductAsync(Guid id, Guid userId)
         {
-            var product = await GetProductAsync(id, userId)
+            var product = await GetProductForEditAsync(id, userId)
                 ?? throw new KeyNotFoundException("Product not found.");
 
             if (product.IsExpired)
@@ -124,6 +130,7 @@ namespace Denudey.Api.Services.Implementations
                     ProductName = p.ProductName,
                     BodyPart = p.BodyPart,
                     MainPhotoUrl = p.MainPhotoUrl,
+                    Tags = p.Tags,
                     IsPublished = p.IsPublished,
                     IsExpired = p.IsExpired,
                     CreatedAt = p.CreatedAt,

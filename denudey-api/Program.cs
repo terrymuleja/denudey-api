@@ -10,7 +10,6 @@ using System.Text;
 using Denudey.Api.Services.Cloudinary;
 using Denudey.Api.Services.Cloudinary.Interfaces;
 using Microsoft.OpenApi.Models;
-using Denudey.Api.Services.Implementations;
 using Denudey.Api.Services.Infrastructure.DbContexts;
 using Denudey.Api.Services.Infrastructure.Sharding.Implementations;
 using Denudey.Application.Services;
@@ -128,6 +127,7 @@ namespace denudey_api
             });
 
             builder.Services.AddSingleton<ElasticIndexInitializer>();
+            builder.Services.AddSingleton<ElasticProductIndexInitializer>();
 
             Console.WriteLine("=== Registering SCOPED services (after logging is ready) ===");
 
@@ -242,6 +242,7 @@ namespace denudey_api
             // Elasticsearch startup
             app.Lifetime.ApplicationStarted.Register(() =>
             {
+                //Episodes
                 Task.Run(async () =>
                 {
                     try
@@ -260,6 +261,28 @@ namespace denudey_api
                         using var scope = app.Services.CreateScope();
                         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                         logger.LogError(ex, "❌ Failed to create Elasticsearch index during startup");
+                    }
+                });
+
+                //Products
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        Console.WriteLine("=== Starting Elasticsearch Product index creation ===");
+                        using var scope = app.Services.CreateScope();
+                        var indexInit = scope.ServiceProvider.GetRequiredService<ElasticProductIndexInitializer>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                        logger.LogInformation("📊 Creating Elasticsearch Product index...");
+                        await indexInit.CreateIndexAsync();
+                        logger.LogInformation("✅ Elasticsearch Product index creation completed.");
+                    }
+                    catch (Exception ex)
+                    {
+                        using var scope = app.Services.CreateScope();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(ex, "❌ Failed to create Elasticsearch Product index during startup");
                     }
                 });
             });

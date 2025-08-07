@@ -15,7 +15,7 @@ namespace Denudey.Application.Services
 {
     public class EpisodeSearchIndexer(ElasticsearchClient elastic, IEpisodeStatsService stats, ILogger<EpisodeSearchIndexer> logger) : IEpisodeSearchIndexer
     {
-        public async Task IndexAsync(ScamflixEpisode episode)
+        public async Task IndexEpisodeAsync(ScamflixEpisode episode)
         {
             var dto = new ScamFlixEpisodeSearchDto
             {
@@ -40,7 +40,7 @@ namespace Denudey.Application.Services
                 throw new Exception($"Failed to index episode: {response.DebugInformation}");
         }
 
-        public async Task DeleteAsync(int episodeId)
+        public async Task DeleteEpisodeFromIndexAsync(int episodeId)
         {
             var response = await elastic.DeleteAsync<ScamFlixEpisodeSearchDto>(episodeId, d => d
                 .Index("scamflix_episodes")

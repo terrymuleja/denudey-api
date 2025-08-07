@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Denudey.Api.Domain.DTOs
 {
-    public class ProductSummaryDto
+    public class ProductDetailsDto
     {
         public Guid Id { get; set; }
         public string ProductName { get; set; } = string.Empty;
@@ -15,11 +15,16 @@ namespace Denudey.Api.Domain.DTOs
 
         public List<string> Tags { get; set; } = new List<string>();
 
+        public List<string> SecondaryPhotoUrls { get; set; } = new List<string>();
+
+        public List<string> DeliveryOptions { get; set; } = new();
+
+        public decimal FeePerDelivery { get; set; }
+
         public bool IsPublished { get; set; }
         public bool IsExpired { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
     }
-
 }

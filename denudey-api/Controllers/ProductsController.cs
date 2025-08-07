@@ -1,5 +1,6 @@
 ﻿using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Services;
+using Denudey.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,7 @@ namespace Denudey.Api.Controllers
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateProductDto dto)
         {
             var userId = GetUserId();
-            var product = await service.GetProductAsync(id, userId);
+            var product = await service.GetProductForEditAsync(id, userId);
 
             if (product == null)
                 return NotFound();
@@ -110,6 +111,16 @@ namespace Denudey.Api.Controllers
             var products = await service.GetMyProductsAsync(userId);
             return Ok(products);
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductDetails(string id)
+        {
+            var guid = Guid.Parse(id);
+
+            var product = await service.GetProductAsync(guid);
+            return Ok(product);
+        }
+
 
     }
 }

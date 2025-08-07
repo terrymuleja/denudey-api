@@ -9,13 +9,13 @@ using Denudey.Api.Models;
 
 namespace Denudey.Application.Interfaces
 {
-    public interface IEpisodeSearchIndexer
+    public interface ProductSearchIndexer
     {
-        Task IndexEpisodeAsync(ScamflixEpisode episode);
+        Task IndexProductAsync(Product product);
         
-        Task DeleteEpisodeFromIndexAsync(int episodeId);
+        Task DeleteProductFromIndexAsync(Guid productId);
         
-        Task<PagedResult<ScamFlixEpisodeDto>> SearchEpisodesAsync(
+        Task<PagedResult<Product>> SearchProductsAsync(
         string? search,
         Guid? currentUserId,
         int page,
