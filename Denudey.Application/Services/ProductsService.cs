@@ -145,26 +145,7 @@ namespace Denudey.Application.Services
             await db.SaveChangesAsync();
         }
 
-        public async Task<List<ProductSummaryDto>> GetMyProductsAsync(Guid userId)
-        {
-            var db = shardRouter.GetDbForUser(userId);
-            return await db.Products
-                .Where(p => p.CreatedBy == userId)
-                .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new ProductSummaryDto
-                {
-                    Id = p.Id,
-                    ProductName = p.ProductName,
-                    BodyPart = p.BodyPart,
-                    MainPhotoUrl = p.MainPhotoUrl,
-                    Tags = p.Tags,
-                    IsPublished = p.IsPublished,
-                    IsExpired = p.IsExpired,
-                    CreatedAt = p.CreatedAt,
-                    ModifiedAt = p.ModifiedAt
-                })
-                .ToListAsync();
-        }
+  
     }
 
 

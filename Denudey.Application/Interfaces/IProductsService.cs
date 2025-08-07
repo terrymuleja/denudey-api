@@ -17,7 +17,7 @@ namespace Denudey.Application.Interfaces
         Task PublishProductAsync(Guid id, Guid userId);
         Task UnpublishProductAsync(Guid id, Guid userId);
         Task ExpireProductAsync(Guid id, Guid userId);
-        Task<List<ProductSummaryDto>> GetMyProductsAsync(Guid userId);
+        
 
     }
 

@@ -1,16 +1,22 @@
 ﻿using Denudey.Api.Domain.DTOs;
+using Denudey.Api.Models;
 using Denudey.Api.Services;
 using Denudey.Application.Interfaces;
+using Denudey.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Denudey.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "model")]
-    public class ProductsController (IProductsService service) : DenudeyControlerBase
+    public class ProductsController (IProductsService service,
+        ProductQueryService productQueryService,
+        IProductSearchIndexer productSearchIndexer,
+        ILogger<ProductsController> logger) : DenudeyControlerBase
     {
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
@@ -105,11 +111,44 @@ namespace Denudey.Api.Controllers
         }
 
         [HttpGet("mine")]
-        public async Task<IActionResult> GetMine()
+        public async Task<IActionResult> GetMine(
+            [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
         {
-            var userId = GetUserId();
-            var products = await service.GetMyProductsAsync(userId);
+            var currentUserId = GetUserId();
+            var products = await productQueryService.GetMyProducts(currentUserId, search, page, pageSize);
             return Ok(products);
+        }
+
+
+        [HttpGet]
+        public async Task<ActionResult<PagedResult<ProductDetailsDto>>> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                // Validate parameters
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+                var userId = GetUserId();
+                var result = await productSearchIndexer.SearchProductsAsync(search, userId, page, pageSize);
+
+                // Always return 200 OK, even if no results
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Unexpected error in GetAll products endpoint");
+
+                return StatusCode(500, new
+                {
+                    error = "An unexpected error occurred while retrieving products"
+                });
+            }
         }
     }
 }

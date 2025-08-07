@@ -63,7 +63,8 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-
+        if (configuration == null)
+            throw new ArgumentNullException(nameof(configuration));
         var user = await db.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
@@ -96,12 +97,18 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
         }
 
         // 🆕 Create a new refresh token for this login session
+        var durationDaysString = configuration["Jwt:RefreshTokenExpiresInDays"];
+        if (!double.TryParse(durationDaysString, out double durationDays))
+        {
+            durationDays = 7.0; // Default to 7 days if parsing fails
+        }
+
         var refreshToken = new RefreshToken
         {
             Token = tokenService.GenerateRefreshToken(),
             UserId = user.Id,
             DeviceId = request.DeviceId,
-            ExpiresAt = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:RefreshTokenExpiresInDays"]))
+            ExpiresAt = DateTime.UtcNow.AddDays(durationDays)
         };
         var name = user.Username;
         var email = user.Email;
@@ -182,6 +189,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
             return StatusCode(500, new { message = "Token refresh failed" });
         }
     }
+
     // Require valid token
     [HttpGet("validate")]
     public IActionResult ValidateToken()
