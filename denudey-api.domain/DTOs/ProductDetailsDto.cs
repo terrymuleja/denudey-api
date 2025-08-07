@@ -10,8 +10,16 @@ namespace Denudey.Api.Domain.DTOs
     {
         public Guid Id { get; set; }
         public string ProductName { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
         public string BodyPart { get; set; } = string.Empty;
         public string MainPhotoUrl { get; set; } = string.Empty;
+
+        public Guid CreatedBy { get; set; } = Guid.Empty;
+
+        public string CreatorUsername { get; set; } = string.Empty;
+
+        public string CreatorAvatarUrl { get; set; } = string.Empty;
 
         public List<string> Tags { get; set; } = new List<string>();
 
@@ -26,5 +34,10 @@ namespace Denudey.Api.Domain.DTOs
 
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
+
+        public int Views { get; set; }
+        public int Likes { get; set; }
+
+        public bool HasUserLiked { get; set; }
     }
 }

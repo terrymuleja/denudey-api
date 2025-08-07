@@ -7,10 +7,8 @@ using Denudey.Api.Domain.DTOs;
 
 namespace Denudey.Application.Interfaces
 {
-    public interface IEpisodeStatsService
+    public interface IProductStatsService
     {
-        Task<Dictionary<int, EpisodeStatsDto>> GetStatsForEpisodesAsync(List<int> episodeIds, Guid? userId);
-        
+        Task<Dictionary<Guid, ProductStatsDto>> GetStatsForProductsAsync(List<Guid> productIds, Guid? userId);
     }
-
 }

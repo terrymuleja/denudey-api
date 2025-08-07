@@ -19,8 +19,7 @@ namespace Denudey.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/episodes")]
-public class EpisodesController(ApplicationDbContext db,
-    EpisodeService episodesService,
+public class EpisodesController(EpisodeService episodesService,
     EpisodeQueryService episodeQueryService,
     IEpisodeSearchIndexer searchService,
     ILogger<EpisodesController> logger) : DenudeyControlerBase

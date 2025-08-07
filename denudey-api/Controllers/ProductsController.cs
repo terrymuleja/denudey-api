@@ -40,7 +40,7 @@ namespace Denudey.Api.Controllers
             if (product.IsPublished)
                 return BadRequest("Cannot modify a published product.");
 
-            await service.UpdateProductAsync(product, dto);
+            await service.UpdateProductAsync(userId, product, dto);
             return Ok();
         }
 
@@ -111,16 +111,5 @@ namespace Denudey.Api.Controllers
             var products = await service.GetMyProductsAsync(userId);
             return Ok(products);
         }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetProductDetails(string id)
-        {
-            var guid = Guid.Parse(id);
-
-            var product = await service.GetProductAsync(guid);
-            return Ok(product);
-        }
-
-
     }
 }

@@ -17,7 +17,7 @@ namespace Denudey.Api.Domain.DTOs
 
         public bool IsPublished { get; set; }
         public bool IsExpired { get; set; }
-
+        public string CreatorUsername { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
     }

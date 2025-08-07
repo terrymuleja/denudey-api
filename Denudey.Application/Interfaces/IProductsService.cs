@@ -11,8 +11,8 @@ namespace Denudey.Application.Interfaces
     public interface IProductsService
     {
         Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId);
-        Task UpdateProductAsync(Product product, CreateProductDto dto);
-        Task<Product?> GetProductAsync(Guid id);
+        Task UpdateProductAsync(Guid userId, Product product, CreateProductDto dto);
+        
         Task<Product?> GetProductForEditAsync(Guid id, Guid userId);
         Task PublishProductAsync(Guid id, Guid userId);
         Task UnpublishProductAsync(Guid id, Guid userId);
