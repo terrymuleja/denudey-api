@@ -110,5 +110,63 @@ namespace Denudey.Application.Services
                 throw;
             }
         }
+
+        public async Task<ProductDetailsDto?> GetProductDetailsAsync(Guid id, Guid currentUserId)
+        {
+            try
+            {
+                var db = _router.GetDbForUser(currentUserId);
+
+                var product = await db.Products
+                    .Include(p => p.Creator)
+                    .FirstOrDefaultAsync(p => p.Id == id && p.CreatedBy == currentUserId);
+
+                if (product == null)
+                    return null;
+
+                // Get stats using the stats service (like in GetMyProducts)
+                Dictionary<Guid, ProductStatsDto> statsMap;
+                try
+                {
+                    statsMap = await _stats.GetStatsForProductsAsync(new List<Guid> { id }, currentUserId);
+                }
+                catch (Exception statsEx)
+                {
+                    _logger?.LogWarning(statsEx, "Failed to get product stats for {ProductId}, using defaults", id);
+                    statsMap = new Dictionary<Guid, ProductStatsDto>();
+                }
+
+                statsMap.TryGetValue(id, out var stats);
+
+                return new ProductDetailsDto
+                {
+                    Id = product.Id,
+                    ProductName = product.ProductName,
+                    Description = product.Description ?? "",
+                    Tags = product.Tags,
+                    MainPhotoUrl = product.MainPhotoUrl ?? "",
+                    SecondaryPhotoUrls = product.SecondaryPhotoUrls,
+                    BodyPart = product.BodyPart,
+                    DeliveryOptions = product.DeliveryOptions,
+                    FeePerDelivery = product.FeePerDelivery,
+                    IsPublished = product.IsPublished,
+                    IsExpired = product.IsExpired,
+                    CreatedAt = product.CreatedAt,
+                    ModifiedAt = product.ModifiedAt,
+                    CreatedBy = product.Creator?.Id ?? product.CreatedBy,
+                    CreatorUsername = product.Creator?.Username ?? "unknown",
+                    CreatorAvatarUrl = product.Creator?.ProfileImageUrl ?? string.Empty,
+                    Views = stats?.Views ?? 0,
+                    Likes = stats?.Likes ?? 0,
+                    HasUserLiked = stats?.UserHasLiked ?? false
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product details for {ProductId}", id);
+                throw;
+            }
+        }
+
     }
 }

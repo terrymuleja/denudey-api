@@ -150,5 +150,27 @@ namespace Denudey.Api.Controllers
                 });
             }
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var userId = GetUserId();
+
+            try
+            {
+                // Use ProductQueryService instead of ProductsService
+                var product = await productQueryService.GetProductDetailsAsync(id, userId);
+
+                if (product == null)
+                    return NotFound("Product not found.");
+
+                return Ok(product);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting product details for {ProductId}", id);
+                return StatusCode(500, "An error occurred while retrieving the product.");
+            }
+        }
     }
 }

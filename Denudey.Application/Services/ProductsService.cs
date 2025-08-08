@@ -82,11 +82,12 @@ namespace Denudey.Application.Services
             return !await db.Demands.AnyAsync(d => d.ProductId == productId && d.RequestedBy == userId);
         }
 
-       
 
-        public async Task UpdateProductAsync( Guid userId, Product product, CreateProductDto dto)
+
+        public async Task UpdateProductAsync(Guid userId, Product product, CreateProductDto dto)
         {
             var db = shardRouter.GetDbForUser(userId);
+
             product.ProductName = dto.ProductName;
             product.Description = dto.Description;
             product.Tags = dto.Tags.Take(10).ToList();
@@ -97,6 +98,19 @@ namespace Denudey.Application.Services
             product.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
+
+            // Reindex in ElasticSearch (overwrites existing document)
+            try
+            {
+                await db.Entry(product).Reference(p => p.Creator).LoadAsync();
+                await productSearchIndexer.IndexProductAsync(product);
+                logger.LogInformation("Successfully reindexed Product {Id} after update", product.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to reindex product {Id} after update", product.Id);
+                // Don't fail the operation if search indexing fails
+            }
         }
 
         public async Task PublishProductAsync(Guid id, Guid userId)
@@ -111,6 +125,18 @@ namespace Denudey.Application.Services
             product.IsPublished = true;
             product.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            // Reindex in ElasticSearch (overwrites existing document)
+            try
+            {
+                await db.Entry(product).Reference(p => p.Creator).LoadAsync();
+                await productSearchIndexer.IndexProductAsync(product);
+                logger.LogInformation("Successfully reindexed Product {Id} after publish", product.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to reindex product {Id} after publish", product.Id);
+            }
         }
 
         public async Task UnpublishProductAsync(Guid id, Guid userId)
@@ -129,6 +155,18 @@ namespace Denudey.Application.Services
             product.IsPublished = false;
             product.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            // Reindex in ElasticSearch (overwrites existing document)
+            try
+            {
+                await db.Entry(product).Reference(p => p.Creator).LoadAsync();
+                await productSearchIndexer.IndexProductAsync(product);
+                logger.LogInformation("Successfully reindexed Product {Id} after unpublish", product.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to reindex product {Id} after unpublish", product.Id);
+            }
         }
 
         public async Task ExpireProductAsync(Guid id, Guid userId)
@@ -143,9 +181,21 @@ namespace Denudey.Application.Services
             product.IsExpired = true;
             product.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            // Reindex in ElasticSearch (overwrites existing document)
+            try
+            {
+                await db.Entry(product).Reference(p => p.Creator).LoadAsync();
+                await productSearchIndexer.IndexProductAsync(product);
+                logger.LogInformation("Successfully reindexed Product {Id} after expire", product.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to reindex product {Id} after expire", product.Id);
+            }
         }
 
-  
+
     }
 
 
