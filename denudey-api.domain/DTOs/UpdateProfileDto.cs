@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Denudey.Api.Domain.DTOs
+﻿namespace Denudey.Api.Domain.DTOs
 {
-    internal class UpdateProfileDto
+    public class UpdateProfileDto
     {
+        public string CountryCode { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string? ProfileImageUrl { get; set; }
     }
+
 }

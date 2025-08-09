@@ -11,6 +11,12 @@ namespace Denudey.Api.Domain.Entities
         public Guid CreatorId { get; set; } = Guid.Empty;
         public string? ProfileImageUrl { get; set; }
         public string? Username { get; set; }
+        public string Email { get; set; } = string.Empty;
+
+        public string CountryCode { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+
+        public bool IsPrivate { get; set; }
         public string? Bio { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

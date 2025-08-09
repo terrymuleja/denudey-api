@@ -101,7 +101,7 @@ namespace Denudey.Api.Services.Infrastructure.DbContexts
             {
                 entity.HasKey(e => e.RequesterId);
                 entity.Property(e => e.RequesterId).HasMaxLength(255);
-                entity.Property(e => e.DisplayName).HasMaxLength(255);
+                entity.Property(e => e.Username).HasMaxLength(255);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             }); 

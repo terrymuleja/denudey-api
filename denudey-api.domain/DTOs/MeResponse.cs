@@ -1,4 +1,4 @@
-﻿namespace DenudeyApi.Models.DTOs;
+﻿namespace Denudey.Api.Domain.DTOs;
 
 public record MeResponse(
     Guid Id,

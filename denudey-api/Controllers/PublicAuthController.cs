@@ -12,13 +12,20 @@ using System.Text;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 using Denudey.Api.Services.Infrastructure.DbContexts;
+using Denudey.Application.Interfaces;
+using Denudey.Application.Services;
+using System.Threading;
 
 
 namespace Denudey.Api.Controllers;
 [AllowAnonymous]
 [ApiController]
 [Route("api/auth")]
-public class PublicAuthController(ApplicationDbContext db, ITokenService tokenService, IConfiguration configuration, ILogger<PublicAuthController> logger) : ControllerBase
+public class PublicAuthController(ApplicationDbContext db,
+    ITokenService tokenService,
+    IConfiguration configuration,
+    IProfileService profileService,
+    ILogger<PublicAuthController> logger) : ControllerBase
 {
     
     [HttpPost("register")]
@@ -61,7 +68,7 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
 
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));
@@ -72,6 +79,18 @@ public class PublicAuthController(ApplicationDbContext db, ITokenService tokenSe
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid credentials" });
+
+        // Sync user data to social profile in statsDb
+        try
+        {
+            await profileService.SyncUserToSocialProfileAsync(user.Id, cancellationToken);
+            logger.LogInformation("Synced user {UserId} to social profile on login", user.Id);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail login if social sync fails
+            logger.LogWarning(ex, "Failed to sync user {UserId} to social profile on login", user.Id);
+        }
 
         var dbRole = user.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault();
         var role = dbRole ?? "requester";

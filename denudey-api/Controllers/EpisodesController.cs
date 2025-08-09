@@ -132,8 +132,7 @@ public class EpisodesController(EpisodeService episodesService,
     public async Task<IActionResult> ToggleLike(int id, [FromBody] EpisodeActionDto model)
     {
         try
-        {
-            
+        {            
             var userId = GetUserId();
             model.UserId = userId;
             var result = await episodesService.ToggleLikeAsync(model);

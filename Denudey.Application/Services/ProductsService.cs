@@ -16,6 +16,7 @@ namespace Denudey.Application.Services
     
     public class ProductsService(IShardRouter shardRouter, 
         ILogger<ProductsService> logger,
+        StatsDbContext statsDb,
         IProductSearchIndexer productSearchIndexer) : IProductsService
     {
         public async Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId)
@@ -195,7 +196,69 @@ namespace Denudey.Application.Services
             }
         }
 
+        public async Task<bool> TrackViewAsync(ProductActionDto model)
+        {
+            try
+            {
+                var view = new ProductView
+                {
+                    ProductId = model.ProductId,
+                    UserId = model.UserId,
+                    CreatorId = model.CreatorId,
+                    CreatedAt = DateTime.UtcNow
+                };
 
+                statsDb.ProductViews.Add(view);
+                await statsDb.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to track view for episode {EpisodeId}", model.ProductId);
+                return false;
+            }
+        }
+
+        public async Task<(bool HasUserLiked, int TotalLikes)> ToggleLikeAsync(ProductActionDto model)
+        {
+            try
+            {
+                var existing = await statsDb.ProductLikes
+                    .FirstOrDefaultAsync(l => l.ProductId == model.ProductId && l.UserId == model.UserId);
+
+                if (existing != null)
+                {
+                    // Unlike
+                    statsDb.ProductLikes.Remove(existing);
+                    await statsDb.SaveChangesAsync();
+
+                    var newCount = await statsDb.ProductLikes.CountAsync(l => l.ProductId == model.ProductId);
+                    return (false, newCount);
+                }
+                else
+                {
+                    // Like
+                    var like = new ProductLike
+                    {
+                        ProductId = model.ProductId,
+                        UserId = model.UserId,
+                        CreatorId = model.CreatorId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    statsDb.ProductLikes.Add(like);
+                    await statsDb.SaveChangesAsync();
+
+                    var newCount = await statsDb.ProductLikes.CountAsync(l => l.ProductId == model.ProductId);
+                    return (true, newCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to toggle like for Product {ProductId}", model.ProductId);
+                throw;
+            }
+        }
     }
 
 

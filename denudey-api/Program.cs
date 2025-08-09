@@ -134,6 +134,9 @@ namespace denudey_api
             // ✅ 7. SCOPED SERVICES (that need logging) - Register these AFTER logging is fully configured
             builder.Services.AddScoped<ITokenService, TokenService>(); // ← This should work now!
 
+            builder.Services.AddScoped<ISocialService, SocialService>();
+            builder.Services.AddScoped<IProfileService, ProfileService>();
+
             builder.Services.AddScoped<IEpisodeStatsService, EpisodeStatsService>();
             builder.Services.AddScoped<IEpisodeSearchIndexer, EpisodeSearchIndexer>();
             builder.Services.AddScoped<EpisodeService>();

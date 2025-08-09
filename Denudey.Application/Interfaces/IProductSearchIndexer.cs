@@ -15,7 +15,7 @@ namespace Denudey.Application.Interfaces
         
         Task DeleteProductFromIndexAsync(Guid productId);
         
-        Task<PagedResult<ProductSummaryDto>> SearchProductsAsync(
+        Task<PagedResult<ProductDetailsDto>> SearchProductsAsync(
         string? search,
         Guid? currentUserId,
         int page,

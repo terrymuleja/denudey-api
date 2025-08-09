@@ -61,7 +61,7 @@ namespace Denudey.Application.Services
             }
         }
 
-        public async Task<PagedResult<ProductSummaryDto>> SearchProductsAsync(
+        public async Task<PagedResult<ProductDetailsDto>> SearchProductsAsync(
     string? search,
     Guid? currentUserId,
     int page,
@@ -111,11 +111,11 @@ namespace Denudey.Application.Services
                         logger?.LogInformation("Elasticsearch index '{indexName}' not found - returning empty result", _indexName);
                     }
 
-                    return new PagedResult<ProductSummaryDto>
+                    return new PagedResult<ProductDetailsDto>
                     {
-                        Items = new List<ProductSummaryDto>(),
+                        Items = new List<ProductDetailsDto>(),
                         Page = page,
-                        PageSize = pageSize,
+                        PageSize = pageSize,    
                         TotalItems = 0,
                         HasNextPage = false
                     };
@@ -128,9 +128,9 @@ namespace Denudey.Application.Services
                 if (!hits.Any())
                 {
                     // This is perfectly normal - just no episodes match the criteria
-                    return new PagedResult<ProductSummaryDto>
+                    return new PagedResult<ProductDetailsDto>
                     {
-                        Items = new List<ProductSummaryDto>(),
+                        Items = new List<ProductDetailsDto>(),
                         Page = page,
                         PageSize = pageSize,
                         TotalItems = 0,
@@ -174,9 +174,10 @@ namespace Denudey.Application.Services
                     };
                 }).ToList();
 
-                return new PagedResult<ProductSummaryDto>
+                return new PagedResult<ProductDetailsDto>
                 {
-                    Items = items.Select(p => p.ToSummary()).ToList(),
+                    TotalItems = items.Count,
+                    Items = items.ToList(),
                     HasNextPage = totalItems > (page * pageSize)
                 };
             }
@@ -185,9 +186,9 @@ namespace Denudey.Application.Services
                 // Log the error but return empty result instead of throwing
                 logger?.LogError(ex, "Exception in SearchEpisodesAsync - returning empty result");
 
-                return new PagedResult<ProductSummaryDto>
+                return new PagedResult<ProductDetailsDto>
                 {
-                    Items = new List<ProductSummaryDto>(),
+                    Items = new List<ProductDetailsDto>(),
                     Page = page,
                     PageSize = pageSize,
                     TotalItems = 0,

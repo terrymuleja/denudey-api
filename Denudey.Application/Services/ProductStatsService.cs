@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CloudinaryDotNet.Core;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Services.Infrastructure.DbContexts;
 using Denudey.Application.Interfaces;
@@ -19,15 +20,15 @@ namespace Denudey.Application.Services
         {
             var result = new Dictionary<Guid, ProductStatsDto>();
             try
-            {
+            {              
                 // Load view counts
                 var views = await statsDb.ProductViews
-                    .Where(v => productIds.Contains(v.Id))
+                    .Where(v => productIds.Contains(v.ProductId))
                     .GroupBy(v => v.ProductId)
                     .Select(g => new { ProductId = g.Key, Count = g.Count() })
                     .ToListAsync();
 
-                // Load like counts
+                // Load like counts     
                 var likes = await statsDb.ProductLikes
                     .Where(l => productIds.Contains(l.ProductId))
                     .GroupBy(l => l.ProductId)

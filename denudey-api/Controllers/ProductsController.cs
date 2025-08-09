@@ -15,6 +15,7 @@ namespace Denudey.Api.Controllers
     [Authorize]
     public class ProductsController (IProductsService service,
         ProductQueryService productQueryService,
+        IProductsService productsService,
         IProductSearchIndexer productSearchIndexer,
         ILogger<ProductsController> logger) : DenudeyControlerBase
     {
@@ -195,6 +196,30 @@ namespace Denudey.Api.Controllers
                 logger.LogError(ex, "Error getting product details for {ProductId}", id);
                 return StatusCode(500, "An error occurred while retrieving the product.");
             }
+        }
+
+        [HttpPost(template: "{id}/like")]
+        public async Task<IActionResult> ToggleLike(Guid id, [FromBody] ProductActionDto model)
+        {
+            try
+            {
+                var userId = GetUserId();
+                model.UserId = userId;
+                var result = await productsService.ToggleLikeAsync(model);
+                return Ok(new { result.HasUserLiked, result.TotalLikes });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/view")]
+        public async Task<IActionResult> TrackView(Guid id, [FromBody] ProductActionDto model)
+        {
+            var userId = GetUserId();
+            var result = await productsService.TrackViewAsync(model);
+            return result ? Ok() : BadRequest();
         }
     }
 }
