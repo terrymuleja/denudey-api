@@ -195,5 +195,72 @@ namespace Denudey.Application.Services
                 };
             }
         }
+
+        public async Task<ProductDetailsDto> GetProductByIdAsync(Guid productId, Guid? currentUserId)
+        {
+            try
+            {
+                var response = await elastic.GetAsync<ProductDetailsDto>(productId, idx => idx
+                    .Index(_indexName)); // Replace with your actual index name
+
+                // Handle Elasticsearch errors properly
+                if (!response.IsValidResponse)
+                {
+                    // Log the error but don't throw - return empty result
+                    logger?.LogWarning("Elasticsearch search failed: {Error}", response.DebugInformation);
+
+                    // Check if it's an index not found error (common when no data exists)
+                    if (response.ApiCallDetails?.HttpStatusCode == 404)
+                    {
+                        logger?.LogInformation("Elasticsearch index '{indexName}' not found - returning empty result", _indexName);
+                    }
+
+                    return null;
+                }
+
+                // Handle empty results (this is normal, not an error)
+                var source = response.Source;
+              
+                
+                // Handle stats service gracefully too
+                Dictionary<Guid, ProductStatsDto> statsMap;
+                try
+                {
+                    statsMap = await stats.GetStatsForProductsAsync(new List<Guid> { source.Id }, currentUserId);
+                }
+                catch (Exception statsEx)
+                {
+                    logger?.LogWarning(statsEx, "Failed to get episode stats, using defaults");
+                    statsMap = new Dictionary<Guid, ProductStatsDto>();
+                }
+
+                statsMap.TryGetValue(source.Id, out var stat);
+                var items = new List<ProductDetailsDto> {
+                
+                };
+                var product = new ProductDetailsDto
+                {
+                    Id = source.Id,
+                    ProductName = source.ProductName ?? "Untitled",
+                    Tags = source.Tags,
+                    MainPhotoUrl = source.MainPhotoUrl ?? "",
+                    SecondaryPhotoUrls = source.SecondaryPhotoUrls,
+                    CreatorUsername = source.CreatorUsername ?? "Unknown",
+                    CreatedAt = source.CreatedAt,
+
+                    CreatedBy = source.CreatedBy,
+                    CreatorAvatarUrl = source.CreatorAvatarUrl ?? "",
+                    Likes = stat?.Likes ?? 0,
+                    Views = stat?.Views ?? 0,
+                    HasUserLiked = stat?.UserHasLiked ?? false
+                };
+                return product;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception
+                return null;
+            }
+        }
     }
 }

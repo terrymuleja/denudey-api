@@ -17,7 +17,7 @@ namespace Denudey.Api.Services.Infrastructure.DbContexts
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<StatsDbContext>();
-            var connectionString = config.GetConnectionString("DefaultConnection");
+            var connectionString = config.GetConnectionString("StatsDb");
 
             optionsBuilder.UseNpgsql(connectionString);
 

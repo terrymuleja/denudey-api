@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Denudey.Api.Services.Infrastructure.Migrations.StatsDb
 {
     [DbContext(typeof(StatsDbContext))]
-    [Migration("20250803200211_AddPkEpisodeLikeView")]
-    partial class AddPkEpisodeLikeView
+    [Migration("20250809040407_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -83,6 +83,64 @@ namespace Denudey.Api.Services.Infrastructure.Migrations.StatsDb
                     b.HasKey("Id");
 
                     b.ToTable("EpisodeViews");
+                });
+
+            modelBuilder.Entity("Denudey.Api.Domain.Entities.ProductLike", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatorProfileImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreatorUsername")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "ProductId");
+
+                    b.ToTable("ProductLikes");
+                });
+
+            modelBuilder.Entity("Denudey.Api.Domain.Entities.ProductView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatorProfileImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreatorUsername")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProductViews");
                 });
 #pragma warning restore 612, 618
         }

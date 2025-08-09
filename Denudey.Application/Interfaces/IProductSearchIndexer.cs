@@ -20,6 +20,8 @@ namespace Denudey.Application.Interfaces
         Guid? currentUserId,
         int page,
         int pageSize);
+
+        Task<ProductDetailsDto> GetProductByIdAsync(Guid productId, Guid? currentUserId);
     }
 
 }

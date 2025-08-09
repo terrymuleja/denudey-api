@@ -12,7 +12,7 @@ namespace Denudey.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "model")]
+    [Authorize]
     public class ProductsController (IProductsService service,
         ProductQueryService productQueryService,
         IProductSearchIndexer productSearchIndexer,
@@ -34,7 +34,7 @@ namespace Denudey.Api.Controllers
             }
         }
 
-
+        [Authorize(Roles = "model")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateProductDto dto)
         {
@@ -50,6 +50,7 @@ namespace Denudey.Api.Controllers
             return Ok();
         }
 
+        [Authorize(Roles = "model")]
         [HttpPost("{id}/publish")]
         public async Task<IActionResult> Publish(Guid id)
         {
@@ -70,6 +71,7 @@ namespace Denudey.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "model")]
         [HttpPost("{id}/unpublish")]
         public async Task<IActionResult> Unpublish(Guid id)
         {
@@ -90,6 +92,7 @@ namespace Denudey.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "model")]
         [HttpPost("{id}/expire")]
         public async Task<IActionResult> Expire(Guid id)
         {
@@ -110,6 +113,7 @@ namespace Denudey.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "model")]
         [HttpGet("mine")]
         public async Task<IActionResult> GetMine(
             [FromQuery] string? search,
@@ -154,11 +158,31 @@ namespace Denudey.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
+            var userId = GetUserId();         
+
+            try
+            {
+                var product = await productSearchIndexer.GetProductByIdAsync(id, userId);
+
+                if (product == null)
+                    return NotFound("Product not found.");
+
+                return Ok(product);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting product details for {ProductId}", id);
+                return StatusCode(500, "An error occurred while retrieving the product.");
+            }
+        }
+
+        [HttpGet("{id}/edit")]
+        public async Task<IActionResult> GetByIdForEdit(Guid id)
+        {
             var userId = GetUserId();
 
             try
             {
-                // Use ProductQueryService instead of ProductsService
                 var product = await productQueryService.GetProductDetailsAsync(id, userId);
 
                 if (product == null)
