@@ -12,11 +12,6 @@ namespace Denudey.Api.Domain.DTOs
         public int EpisodeId { get; set; }
         public Guid UserId { get; set; }
         public Guid CreatorId { get; set; }
-        
-        [Required]
-        public string? CreatorUsername { get; set; }
-
-        [Required]
-        public string? CreatorAvatarUrl { get; set; } 
+      
     }
 }

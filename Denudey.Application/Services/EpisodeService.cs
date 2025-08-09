@@ -150,9 +150,7 @@ public class EpisodeService
             {
                 EpisodeId = model.EpisodeId,
                 UserId = model.UserId,
-                CreatorId = model.CreatorId,
-                CreatorUsername = model.CreatorUsername ?? "",
-                CreatorProfileImageUrl = model.CreatorAvatarUrl ?? "",
+                RequesterId = model.CreatorId,                
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -190,9 +188,7 @@ public class EpisodeService
                 {
                     EpisodeId = model.EpisodeId,
                     UserId = model.UserId,
-                    CreatorId = model.CreatorId,
-                    CreatorUsername = model.CreatorUsername ?? "",
-                    CreatorProfileImageUrl = model.CreatorAvatarUrl ?? "",
+                    RequesterId = model.CreatorId,                    
                     CreatedAt = DateTime.UtcNow
                 };
 

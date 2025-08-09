@@ -10,10 +10,11 @@ namespace Denudey.Api.Domain.Entities
     {
         public Guid UserId { get; set; }
         public Guid ProductId { get; set; }
-        public Guid CreatorId { get; set; }
-        public string CreatorUsername { get; set; } = string.Empty;
-        public string CreatorProfileImageUrl { get; set; } = string.Empty;
+        public Guid CreatorId { get; set; }        
         public DateTime CreatedAt { get; set; }
+
+        // Navigation property
+        public CreatorSocial Creator { get; set; } = null!;
     }
 
 

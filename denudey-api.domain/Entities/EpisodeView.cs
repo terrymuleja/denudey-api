@@ -11,13 +11,13 @@ namespace Denudey.Api.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-
         public Guid UserId { get; set; }
         public int EpisodeId { get; set; }
-        public Guid CreatorId { get; set; }
-        public string CreatorUsername { get; set; } = string.Empty;
-        public string CreatorProfileImageUrl { get; set; } = string.Empty;
+        public Guid RequesterId { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Navigation property
+        public RequesterSocial Requester { get; set; } = null!;
     }
 
 }
