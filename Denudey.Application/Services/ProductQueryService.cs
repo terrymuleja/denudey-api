@@ -37,26 +37,33 @@ namespace Denudey.Application.Services
             {
                 var db = _router.GetDbForUser(currentUserId);
 
-                var query = db.Products
+                // Get all products for the user (only ~10 products)
+                var allProducts = await db.Products
                     .Include(e => e.Creator)
-                    .Where(e => e.Creator.Id == currentUserId);
+                    .Where(e => e.Creator.Id == currentUserId)
+                    .OrderByDescending(e => e.CreatedAt)
+                    .ToListAsync();
 
+                // Filter in memory if search is provided
+                var filteredProducts = allProducts;
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var searchLower = search.ToLower();
-                    query = query.Where(e =>
+                    filteredProducts = allProducts.Where(e =>
                         e.ProductName.ToLower().Contains(searchLower) ||
-                        (e.Tags != null && e.Tags.Where(t => t.ToLower().Contains(searchLower)).Any())
-                    );
+                        (e.Description != null && e.Description.ToLower().Contains(searchLower)) ||
+                        (e.Tags != null && e.Tags.Any(t => t.ToLower().Contains(searchLower)))
+                    ).ToList();
                 }
 
-                var totalCount = await query.CountAsync();
+                var totalCount = filteredProducts.Count;
 
-                var products = await query
-                    .OrderByDescending(e => e.CreatedAt)
+                // Apply pagination
+                var products = filteredProducts
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .ToListAsync();
+                    .ToList();
+           
 
                 var productIds = products.Select(e => e.Id).ToList();
                 Dictionary<Guid, ProductStatsDto> statsMap;
@@ -91,6 +98,8 @@ namespace Denudey.Application.Services
                         CreatedBy = product.Creator?.Id ?? product.CreatedBy,
                         CreatorUsername = product.Creator?.Username ?? "unknown",
                         CreatorAvatarUrl = product.Creator?.ProfileImageUrl ?? string.Empty,
+                        Likes = stat?.Likes ?? 0,
+                        Views = stat?.Views ?? 0,
                         CreatedAt = product.CreatedAt,
                         ModifiedAt = product.ModifiedAt,
                     };
