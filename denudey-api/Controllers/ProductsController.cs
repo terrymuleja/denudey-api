@@ -131,7 +131,8 @@ namespace Denudey.Api.Controllers
         public async Task<ActionResult<PagedResult<ProductDetailsDto>>> GetAll(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string[]? bodyParts = null) // New parameter for body parts
         {
             try
             {
@@ -140,7 +141,7 @@ namespace Denudey.Api.Controllers
                 if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
                 var userId = GetUserId();
-                var result = await productSearchIndexer.SearchProductsAsync(search, userId, page, pageSize);
+                var result = await productSearchIndexer.SearchProductsAsync(search, userId, page, pageSize, bodyParts);
 
                 // Always return 200 OK, even if no results
                 return Ok(result);

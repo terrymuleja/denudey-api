@@ -61,11 +61,14 @@ namespace Denudey.Application.Services
             }
         }
 
+        // Updated SearchProductsAsync method in ProductSearchIndexer
+        // Updated SearchProductsAsync method in ProductSearchIndexer
         public async Task<PagedResult<ProductDetailsDto>> SearchProductsAsync(
     string? search,
     Guid? currentUserId,
     int page,
-    int pageSize)
+    int pageSize,
+    string[]? bodyParts = null)
         {
             try
             {
@@ -83,14 +86,101 @@ namespace Denudey.Application.Services
             }
                 };
 
-                // Handle search query
+                // Build the query with multiple conditions
+                var queries = new List<Query>();
+
+                // Handle search query with partial matching
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    searchRequest.Query = new MultiMatchQuery
+                    queries.Add(new BoolQuery
                     {
+                        Should = new Query[]
+                        {
+                    // Wildcard search for partial matching in product name (highest priority)
+                    new WildcardQuery
+                    {
+                        Field = "productName",
+                        Value = $"*{search.ToLower()}*",
+                        Boost = 3.0f,
+                        CaseInsensitive = true
+                    },
+                    
+                    // Wildcard search for partial matching in description
+                    new WildcardQuery
+                    {
+                        Field = "description",
+                        Value = $"*{search.ToLower()}*",
+                        Boost = 2.0f,
+                        CaseInsensitive = true
+                    },
+                    
+                    // Standard match for tags (tags usually work well with exact matching)
+                    new MatchQuery
+                    {
+                        Field = "tags",
                         Query = search,
-                        Fields = new[] { "productname", "description", "tags", "creatorUsername" }
+                        Boost = 2.5f,
+                        Operator = Operator.Or
+                    },
+                    
+                    // Standard match for creator username
+                    new MatchQuery
+                    {
+                        Field = "creatorUsername",
+                        Query = search,
+                        Boost = 1.0f,
+                        Operator = Operator.Or
+                    },
+                    
+                    // Fuzzy matching for typos in product name
+                    new FuzzyQuery
+                    {
+                        Field = "productName",
+                        Value = search.ToLower(),
+                        Boost = 1.5f,
+                        Fuzziness = new Fuzziness("AUTO")
+                    },
+                    
+                    // Query string for natural search behavior (fallback)
+                    new QueryStringQuery
+                    {
+                        Query = $"*{search}*",
+                        Fields = new[] { "productName^2", "description^1.5", "tags^2", "creatorUsername^1" },
+                        DefaultOperator = Operator.Or,
+                        Boost = 1.0f
+                    }
+                        },
+                        MinimumShouldMatch = 1
+                    });
+                }
+
+                // Handle body parts filter
+                if (bodyParts != null && bodyParts.Length > 0)
+                {
+                    // Filter out any null/empty values
+                    var validBodyParts = bodyParts.Where(bp => !string.IsNullOrWhiteSpace(bp)).ToArray();
+
+                    if (validBodyParts.Length > 0)
+                    {
+                        queries.Add(new TermsQuery
+                        {
+                            Field = "bodyPart.keyword", // Use .keyword for exact matching
+                            Terms = new TermsQueryField(validBodyParts.Select(bp => FieldValue.String(bp.ToLowerInvariant())).ToArray())
+                        });
+                    }
+                }
+
+                // Combine queries
+                if (queries.Count > 1)
+                {
+                    searchRequest.Query = new BoolQuery
+                    {
+                        Must = queries
                     };
+                }
+                else if (queries.Count == 1)
+                {
+                    searchRequest.Query = queries[0];
                 }
                 else
                 {
@@ -115,7 +205,7 @@ namespace Denudey.Application.Services
                     {
                         Items = new List<ProductDetailsDto>(),
                         Page = page,
-                        PageSize = pageSize,    
+                        PageSize = pageSize,
                         TotalItems = 0,
                         HasNextPage = false
                     };
@@ -127,7 +217,6 @@ namespace Denudey.Application.Services
 
                 if (!hits.Any())
                 {
-                    // This is perfectly normal - just no episodes match the criteria
                     return new PagedResult<ProductDetailsDto>
                     {
                         Items = new List<ProductDetailsDto>(),
@@ -138,10 +227,9 @@ namespace Denudey.Application.Services
                     };
                 }
 
-                // Process the results
+                // Process the results (rest of the method remains the same)
                 var productIds = hits.Select(e => e.Id).ToList();
 
-                // Handle stats service gracefully too
                 Dictionary<Guid, ProductStatsDto> statsMap;
                 try
                 {
@@ -149,7 +237,7 @@ namespace Denudey.Application.Services
                 }
                 catch (Exception statsEx)
                 {
-                    logger?.LogWarning(statsEx, "Failed to get episode stats, using defaults");
+                    logger?.LogWarning(statsEx, "Failed to get product stats, using defaults");
                     statsMap = new Dictionary<Guid, ProductStatsDto>();
                 }
 
@@ -160,12 +248,14 @@ namespace Denudey.Application.Services
                     {
                         Id = e.Id,
                         ProductName = e.ProductName ?? "Untitled",
+                        Description = e.Description,
+                        BodyPart = e.BodyPart,
                         Tags = e.Tags,
-                        MainPhotoUrl = e.MainPhotoUrl?? "",
-                        SecondaryPhotoUrls =e.SecondaryPhotoUrls, 
+                        MainPhotoUrl = e.MainPhotoUrl ?? "",
+                        SecondaryPhotoUrls = e.SecondaryPhotoUrls,
                         CreatorUsername = e.CreatorUsername ?? "Unknown",
                         CreatedAt = e.CreatedAt,
-                        
+
                         CreatedBy = e.CreatedBy,
                         CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
                         Likes = stat?.Likes ?? 0,
@@ -176,15 +266,17 @@ namespace Denudey.Application.Services
 
                 return new PagedResult<ProductDetailsDto>
                 {
-                    TotalItems = items.Count,
+                    TotalItems = totalItems,
                     Items = items.ToList(),
-                    HasNextPage = totalItems > (page * pageSize)
+                    HasNextPage = totalItems > (page * pageSize),
+                    Page = page,
+                    PageSize = pageSize
                 };
             }
             catch (Exception ex)
             {
                 // Log the error but return empty result instead of throwing
-                logger?.LogError(ex, "Exception in SearchEpisodesAsync - returning empty result");
+                logger?.LogError(ex, "Exception in SearchProductsAsync - returning empty result");
 
                 return new PagedResult<ProductDetailsDto>
                 {
@@ -196,7 +288,6 @@ namespace Denudey.Application.Services
                 };
             }
         }
-
         public async Task<ProductDetailsDto> GetProductByIdAsync(Guid productId, Guid? currentUserId)
         {
             try
@@ -243,6 +334,8 @@ namespace Denudey.Application.Services
                 {
                     Id = source.Id,
                     ProductName = source.ProductName ?? "Untitled",
+                    Description = source.Description,
+                    BodyPart = source.BodyPart,
                     Tags = source.Tags,
                     MainPhotoUrl = source.MainPhotoUrl ?? "",
                     SecondaryPhotoUrls = source.SecondaryPhotoUrls,
@@ -260,6 +353,7 @@ namespace Denudey.Application.Services
             catch (Exception ex)
             {
                 // Handle exception
+                logger.LogError(ex, ex.Message);
                 return null;
             }
         }

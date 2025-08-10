@@ -158,57 +158,47 @@ public class PublicAuthController(ApplicationDbContext db,
             .Include(rt => rt.User)
             .ThenInclude(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(rt => rt.Token == request.Token && rt.DeviceId == request.DeviceId);
+            .FirstOrDefaultAsync(rt => rt.Token == request.Token &&
+                                     rt.DeviceId == request.DeviceId &&
+                                     rt.Revoked == null &&
+                                     rt.ExpiresAt > DateTime.UtcNow);
 
-        if (storedToken == null || storedToken.Revoked != null || storedToken.ExpiresAt < DateTime.UtcNow)
+        if (storedToken == null)
         {
-            logger.LogWarning($"Token {request.Token} was expired");
+            logger.LogWarning("Token {Token} not found, revoked, or expired", request.Token);
             return Unauthorized(new { message = "Invalid or expired token" });
         }
 
-        logger.LogInformation($"token found: {storedToken.Token}");
-
-        // ✅ Use the execution strategy as the error message suggests
-        var strategy = db.Database.CreateExecutionStrategy();
+        logger.LogInformation("Valid token found: {Token}", storedToken.Token);
 
         try
         {
-            var result = await strategy.ExecuteAsync(async () =>
+            // Simply create a new token - don't revoke the old one
+            var newToken = new RefreshToken
             {
-                // ✅ Create new token FIRST
-                var newToken = new RefreshToken
-                {
-                    Token = tokenService.GenerateRefreshToken(),
-                    UserId = storedToken.UserId,
-                    DeviceId = storedToken.DeviceId,
-                    ExpiresAt = DateTime.UtcNow.AddDays(7)
-                };
+                Token = tokenService.GenerateRefreshToken(),
+                UserId = storedToken.UserId,
+                DeviceId = storedToken.DeviceId,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
 
-                db.RefreshTokens.Add(newToken);
-                await db.SaveChangesAsync(); // Save new token first
+            db.RefreshTokens.Add(newToken);
+            await db.SaveChangesAsync();
 
-                // ✅ Only revoke old token AFTER new one is saved
-                storedToken.Revoked = DateTime.UtcNow;
-                await db.SaveChangesAsync(); // Save revocation
+            var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester";
+            logger.LogInformation("New token created: {Token}", newToken.Token);
 
-                var role = storedToken.User?.UserRoles?.FirstOrDefault()?.Role.Name ?? "requester";
-                logger.LogInformation($"new token: {newToken.Token}");
-
-                return new AuthTokenResponse(
-                    tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
-                    newToken.Token
-                );
-            });
-
-            return Ok(result);
+            return Ok(new AuthTokenResponse(
+                tokenService.GenerateAccessToken(storedToken.User!.Id.ToString(), role),
+                newToken.Token
+            ));
         }
         catch (Exception ex)
         {
-            logger.LogError($"Token refresh failed: {ex.Message}");
+            logger.LogError(ex, "Token refresh failed");
             return StatusCode(500, new { message = "Token refresh failed" });
         }
     }
-
     // Require valid token
     [HttpGet("validate")]
     public IActionResult ValidateToken()
