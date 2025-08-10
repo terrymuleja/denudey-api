@@ -89,6 +89,20 @@ namespace Denudey.Application.Services
                 // Build the query with multiple conditions
                 var queries = new List<Query>();
 
+                // ALWAYS filter for published products only
+                queries.Add(new TermQuery
+                {
+                    Field = "isPublished",
+                    Value = true
+                });
+
+                // ALWAYS filter out expired products
+                queries.Add(new TermQuery
+                {
+                    Field = "isExpired",
+                    Value = false
+                });
+
                 // Handle search query with partial matching
                 if (!string.IsNullOrWhiteSpace(search))
                 {
@@ -170,22 +184,11 @@ namespace Denudey.Application.Services
                     }
                 }
 
-                // Combine queries
-                if (queries.Count > 1)
+                // Always use BoolQuery with Must to ensure all conditions are met
+                searchRequest.Query = new BoolQuery
                 {
-                    searchRequest.Query = new BoolQuery
-                    {
-                        Must = queries
-                    };
-                }
-                else if (queries.Count == 1)
-                {
-                    searchRequest.Query = queries[0];
-                }
-                else
-                {
-                    searchRequest.Query = new MatchAllQuery();
-                }
+                    Must = queries
+                };
 
                 var response = await elastic.SearchAsync<ProductDetailsDto>(searchRequest);
 
@@ -339,6 +342,8 @@ namespace Denudey.Application.Services
                     Tags = source.Tags,
                     MainPhotoUrl = source.MainPhotoUrl ?? "",
                     SecondaryPhotoUrls = source.SecondaryPhotoUrls,
+                    DeliveryOptions = source.DeliveryOptions,
+                    FeePerDelivery = source.FeePerDelivery,
                     CreatorUsername = source.CreatorUsername ?? "Unknown",
                     CreatedAt = source.CreatedAt,
 

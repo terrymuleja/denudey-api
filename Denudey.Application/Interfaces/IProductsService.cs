@@ -20,6 +20,9 @@ namespace Denudey.Application.Interfaces
         Task<bool> TrackViewAsync(ProductActionDto model);
         Task<(bool HasUserLiked, int TotalLikes)> ToggleLikeAsync(ProductActionDto model);
 
+        Task DeleteProductAsync(Guid id, Guid userId);
+
     }
+
 
 }

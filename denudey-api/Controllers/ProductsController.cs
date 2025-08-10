@@ -222,5 +222,24 @@ namespace Denudey.Api.Controllers
             var result = await productsService.TrackViewAsync(model);
             return result ? Ok() : BadRequest();
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var userId = GetUserId();
+            try
+            {
+                await service.DeleteProductAsync(id, userId);
+                return Ok();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

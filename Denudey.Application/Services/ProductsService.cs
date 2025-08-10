@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
+using Denudey.Api.Services.Cloudinary.Interfaces;
 using Denudey.Api.Services.Infrastructure.DbContexts;
 using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch.Security;
@@ -17,6 +18,7 @@ namespace Denudey.Application.Services
     public class ProductsService(IShardRouter shardRouter, 
         ILogger<ProductsService> logger,
         StatsDbContext statsDb,
+        ICloudinaryService cloudinaryService,
         IProductSearchIndexer productSearchIndexer) : IProductsService
     {
         public async Task<Product> CreateProductAsync(CreateProductDto dto, Guid userId)
@@ -83,8 +85,7 @@ namespace Denudey.Application.Services
             return !await db.Demands.AnyAsync(d => d.ProductId == productId && d.RequestedBy == userId);
         }
 
-
-
+   
         public async Task UpdateProductAsync(Guid userId, Product product, CreateProductDto dto)
         {
             var db = shardRouter.GetDbForUser(userId);
@@ -259,6 +260,51 @@ namespace Denudey.Application.Services
                 throw;
             }
         }
+
+        public async Task DeleteProductAsync(Guid id, Guid userId)
+        {
+            var db = shardRouter.GetDbForUser(userId);
+            var product = await GetProductForEditAsync(id, userId)
+                ?? throw new KeyNotFoundException("Product not found.");
+            try
+            {
+                // Check if deletion is allowed (no active demands, etc.)
+                if (await CanUnpublishAsync(id, userId))
+                {
+                    // Delete from database
+                    db.Products.Remove(product);
+                    await db.SaveChangesAsync();
+
+                    // Remove from search index
+                    await productSearchIndexer.DeleteProductFromIndexAsync(id);
+                    // Delete Cloudinary images
+                    await this.DeleteImages(product);
+
+                } else
+                {
+                    throw new Exception("Product is in use, cannot be deleted");
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to toggle like for Product {ProductId}", id);
+                throw;
+            }
+        }
+
+        private async Task<bool> DeleteImages(Product p)
+        {
+            // delete main image
+            await cloudinaryService.DeleteImageFromCloudinary(p.MainPhotoUrl);
+            // delete other images
+            foreach (var item in p.SecondaryPhotoUrls)
+            {
+                await cloudinaryService.DeleteImageFromCloudinary(item);
+            }
+            return true;
+        } 
     }
 
 
