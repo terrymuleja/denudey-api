@@ -256,6 +256,8 @@ namespace Denudey.Application.Services
                         Tags = e.Tags,
                         MainPhotoUrl = e.MainPhotoUrl ?? "",
                         SecondaryPhotoUrls = e.SecondaryPhotoUrls,
+                        DeliveryOptions = e.DeliveryOptions,
+                        FeePerDelivery = e.FeePerDelivery,
                         CreatorUsername = e.CreatorUsername ?? "Unknown",
                         CreatedAt = e.CreatedAt,
 
