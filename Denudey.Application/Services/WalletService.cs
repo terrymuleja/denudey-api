@@ -30,14 +30,20 @@ namespace Denudey.Api.Application.Services
 
         #region READ Operations
 
-        public async Task<UserWallet> GetWalletAsync(Guid userId)
+        public async Task<UserWallet> CreateWalletAsync(Guid userId)
         {
-            var wallet = await _context.UserWallets.FirstOrDefaultAsync(w => w.UserId == userId);
-
-            if (wallet == null)
+            try
             {
-                // Create new wallet if doesn't exist
-                wallet = new UserWallet
+                // Check if wallet already exists
+                var existingWallet = await _context.UserWallets.FirstOrDefaultAsync(w => w.UserId == userId);
+                if (existingWallet != null)
+                {
+                    _logger.LogInformation("Wallet already exists for user {UserId}, returning existing wallet", userId);
+                    return existingWallet;
+                }
+
+                // Create new wallet
+                var wallet = new UserWallet
                 {
                     UserId = userId,
                     BeanBalance = 0m,
@@ -50,7 +56,30 @@ namespace Denudey.Api.Application.Services
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Created new wallet for user {UserId}", userId);
+                return wallet;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating wallet for user {UserId}", userId);
+                throw;
+            }
+        }
+        public async Task<UserWallet> GetWalletAsync(Guid userId)
+        {
+            UserWallet? wallet = new UserWallet();
+            try
+            {
+                wallet = await _context.UserWallets.FirstOrDefaultAsync(w => w.UserId == userId);
+                if (wallet == null)
+                {
+                    wallet = await this.CreateWalletAsync(userId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }            
 
             return wallet;
         }

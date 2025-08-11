@@ -8,6 +8,7 @@ namespace Denudey.Api.Application.Interfaces
     public interface IWalletService
     {
         // READ operations
+        Task<UserWallet> CreateWalletAsync(Guid userId);
         Task<UserWallet> GetWalletAsync(Guid userId);
         Task<decimal> GetBeanBalanceAsync(Guid userId);
         Task<decimal> GetUsdBalanceAsync(Guid userId);
