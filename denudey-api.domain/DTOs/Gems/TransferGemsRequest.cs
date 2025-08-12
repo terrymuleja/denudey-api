@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Denudey.Api.Domain.DTOs.Beans
+namespace Denudey.Api.Domain.DTOs.Gems
 {
-    public class DeductUsdRequest
+    public class TransferGemsRequest
     {
-        public Guid UserId { get; set; }
+
+        public Guid ToUserId { get; set; }
         public decimal Amount { get; set; }
-        public string? Description { get; set; }
     }
 }

@@ -15,18 +15,18 @@ namespace Denudey.Api.Application.Interfaces
         Task<bool> HasSufficientBeansAsync(Guid userId, decimal amount);
 
         // BEAN operations
-        Task<bool> AddBeansAsync(Guid userId, decimal amount, string description);
-        Task<bool> DeductBeansAsync(Guid userId, decimal amount);
-        Task<bool> TransferBeansAsync(Guid fromUserId, Guid toUserId, decimal amount);
+        Task<bool> AddGemsAsync(Guid userId, decimal amount, string description);
+        Task<bool> DeductGemsAsync(Guid userId, decimal amount);
+        Task<bool> TransferGemsAsync(Guid fromUserId, Guid toUserId, decimal amount);
 
         // USD operations
         Task<bool> AddUsdAsync(Guid userId, decimal amount);
         Task<bool> DeductUsdAsync(Guid userId, decimal amount);
 
         // CONVERSION operations
-        Task<bool> ConvertBeansToUsdAsync(Guid userId, decimal beanAmount);
-        Task<bool> ConvertUsdToBeansAsync(Guid userId, decimal usdAmount);
-        Task<decimal> GetBeanToUsdRateAsync();
+        Task<bool> ConvertGemsToUsdAsync(Guid userId, decimal gemsAmount);
+        Task<bool> ConvertUsdToGemsAsync(Guid userId, decimal usdAmount);
+        Task<decimal> GetGemsToUsdRateAsync();
 
         // TRANSACTION history
         Task<IEnumerable<WalletTransaction>> GetTransactionHistoryAsync(Guid userId);

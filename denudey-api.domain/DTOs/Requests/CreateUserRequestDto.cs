@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.Models;
 
-namespace Denudey.Api.Domain.DTOs
+namespace Denudey.Api.Domain.DTOs.Requests
 {
     public class CreateUserRequestDto
     {

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Denudey.Api.Domain.DTOs.Beans
+namespace Denudey.Api.Domain.DTOs.Gems
 {
-    public class ConvertBeansToUsdRequest
+    public class ConvertGemsToUsdRequest
     {
 
         public decimal BeanAmount { get; set; }

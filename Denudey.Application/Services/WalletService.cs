@@ -19,8 +19,8 @@ namespace Denudey.Api.Application.Services
         private readonly StatsDbContext _context;
         private readonly ILogger<WalletService> _logger;
 
-        // Bean to USD conversion rate (you can make this configurable)
-        private const decimal BEAN_TO_USD_RATE = 0.33m; // 1 bean = $0.33
+        // Gems to USD conversion rate (you can make this configurable)
+        private const decimal GEM_TO_USD_RATE = 0.33m; // 1 bean = $0.33
 
         public WalletService(StatsDbContext context, ILogger<WalletService> logger)
         {
@@ -106,7 +106,7 @@ namespace Denudey.Api.Application.Services
 
         #region BEAN Operations
 
-        public async Task<bool> AddBeansAsync(Guid userId, decimal amount, string description)
+        public async Task<bool> AddGemsAsync(Guid userId, decimal amount, string description)
         {
             if (amount <= 0)
             {
@@ -143,7 +143,7 @@ namespace Denudey.Api.Application.Services
             }
         }
 
-        public async Task<bool> DeductBeansAsync(Guid userId, decimal amount)
+        public async Task<bool> DeductGemsAsync(Guid userId, decimal amount)
         {
             if (amount <= 0)
             {
@@ -186,7 +186,7 @@ namespace Denudey.Api.Application.Services
             }
         }
 
-        public async Task<bool> TransferBeansAsync(Guid fromUserId, Guid toUserId, decimal amount)
+        public async Task<bool> TransferGemsAsync(Guid fromUserId, Guid toUserId, decimal amount)
         {
             if (amount <= 0)
             {
@@ -336,25 +336,25 @@ namespace Denudey.Api.Application.Services
 
         #region CONVERSION Operations
 
-        public async Task<bool> ConvertBeansToUsdAsync(Guid userId, decimal beanAmount)
+        public async Task<bool> ConvertGemsToUsdAsync(Guid userId, decimal gemsAmount)
         {
-            if (beanAmount <= 0)
+            if (gemsAmount <= 0)
             {
-                throw new ArgumentException("Bean amount must be positive", nameof(beanAmount));
+                throw new ArgumentException("Bean amount must be positive", nameof(gemsAmount));
             }
 
             try
             {
                 var wallet = await GetWalletAsync(userId);
 
-                if (wallet.BeanBalance < beanAmount)
+                if (wallet.BeanBalance < gemsAmount)
                 {
-                    throw new InsufficientFundsException($"Insufficient bean balance for conversion. Required: {beanAmount}, Available: {wallet.BeanBalance}");
+                    throw new InsufficientFundsException($"Insufficient bean balance for conversion. Required: {gemsAmount}, Available: {wallet.BeanBalance}");
                 }
 
-                var usdAmount = beanAmount * BEAN_TO_USD_RATE;
+                var usdAmount = gemsAmount * GEM_TO_USD_RATE;
 
-                wallet.BeanBalance -= beanAmount;
+                wallet.BeanBalance -= gemsAmount;
                 wallet.UsdBalance += usdAmount;
                 wallet.LastUpdated = DateTime.UtcNow;
 
@@ -363,26 +363,26 @@ namespace Denudey.Api.Application.Services
                 {
                     UserId = userId,
                     Type = WalletTransactionType.Conversion,
-                    Amount = beanAmount,
+                    Amount = gemsAmount,
                     Currency = "BEAN_TO_USD",
-                    Description = $"Converted {beanAmount} beans to ${usdAmount:F2}"
+                    Description = $"Converted {gemsAmount} beans to ${usdAmount:F2}"
                 });
 
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Converted {BeanAmount} beans to ${UsdAmount} for user {UserId}",
-                    beanAmount, usdAmount, userId);
+                    gemsAmount, usdAmount, userId);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting {BeanAmount} beans to USD for user {UserId}", beanAmount, userId);
+                _logger.LogError(ex, "Error converting {BeanAmount} beans to USD for user {UserId}", gemsAmount, userId);
                 return false;
             }
         }
 
-        public async Task<bool> ConvertUsdToBeansAsync(Guid userId, decimal usdAmount)
+        public async Task<bool> ConvertUsdToGemsAsync(Guid userId, decimal usdAmount)
         {
             if (usdAmount <= 0)
             {
@@ -398,7 +398,7 @@ namespace Denudey.Api.Application.Services
                     throw new InsufficientFundsException($"Insufficient USD balance for conversion. Required: ${usdAmount}, Available: ${wallet.UsdBalance}");
                 }
 
-                var beanAmount = usdAmount / BEAN_TO_USD_RATE;
+                var beanAmount = usdAmount / GEM_TO_USD_RATE;
 
                 wallet.UsdBalance -= usdAmount;
                 wallet.BeanBalance += beanAmount;
@@ -428,10 +428,10 @@ namespace Denudey.Api.Application.Services
             }
         }
 
-        public async Task<decimal> GetBeanToUsdRateAsync()
+        public async Task<decimal> GetGemsToUsdRateAsync()
         {
             // In a real app, this might come from a configuration service or external API
-            return await Task.FromResult(BEAN_TO_USD_RATE);
+            return await Task.FromResult(GEM_TO_USD_RATE);
         }
 
         #endregion

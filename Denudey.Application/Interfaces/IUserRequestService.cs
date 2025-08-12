@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Denudey.Api.Domain.DTOs;
+using Denudey.Api.Domain.DTOs.Requests;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Models;
 

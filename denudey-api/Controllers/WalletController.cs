@@ -9,7 +9,7 @@ using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Exceptions;
 using Denudey.Api.Domain.Models;
-using Denudey.Api.Domain.DTOs.Beans;
+using Denudey.Api.Domain.DTOs.Gems;
 
 namespace Denudey.Api.Controllers
 {
@@ -119,7 +119,7 @@ namespace Denudey.Api.Controllers
         /// Add beans to user wallet
         /// </summary>
         [HttpPost("beans/add")]
-        public async Task<ActionResult<object>> AddBeans([FromBody] AddBeansRequest request)
+        public async Task<ActionResult<object>> AddBeans([FromBody] AddGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -129,7 +129,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
                 var descripton = "Manual add";
-                var success = await _walletService.AddBeansAsync(userId, request.Amount, descripton);
+                var success = await _walletService.AddGemsAsync(userId, request.Amount, descripton);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -147,7 +147,7 @@ namespace Denudey.Api.Controllers
         /// Deduct beans from user wallet
         /// </summary>
         [HttpPost("beans/deduct")]
-        public async Task<ActionResult<object>> DeductBeans([FromBody] DeductBeansRequest request)
+        public async Task<ActionResult<object>> DeductBeans([FromBody] DeductGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -157,7 +157,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
 
-                var success = await _walletService.DeductBeansAsync(userId, request.Amount);
+                var success = await _walletService.DeductGemsAsync(userId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -179,7 +179,7 @@ namespace Denudey.Api.Controllers
         /// Transfer beans between users
         /// </summary>
         [HttpPost("beans/transfer")]
-        public async Task<ActionResult<object>> TransferBeans([FromBody] TransferBeansRequest request)
+        public async Task<ActionResult<object>> TransferBeans([FromBody] TransferGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -194,7 +194,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Cannot transfer to the same user" });
                 }
 
-                var success = await _walletService.TransferBeansAsync(userId, request.ToUserId, request.Amount);
+                var success = await _walletService.TransferGemsAsync(userId, request.ToUserId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -304,7 +304,7 @@ namespace Denudey.Api.Controllers
         /// Convert beans to USD
         /// </summary>
         [HttpPost("convert/beans-to-usd")]
-        public async Task<ActionResult<object>> ConvertBeansToUsd([FromBody] ConvertBeansToUsdRequest request)
+        public async Task<ActionResult<object>> ConvertBeansToUsd([FromBody] ConvertGemsToUsdRequest request)
         {
             var userId = GetUserId();
             try
@@ -314,7 +314,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Bean amount must be positive" });
                 }
 
-                var success = await _walletService.ConvertBeansToUsdAsync(userId, request.BeanAmount);
+                var success = await _walletService.ConvertGemsToUsdAsync(userId, request.BeanAmount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -336,7 +336,7 @@ namespace Denudey.Api.Controllers
         /// Convert USD to beans
         /// </summary>
         [HttpPost("convert/usd-to-beans")]
-        public async Task<ActionResult<object>> ConvertUsdToBeans([FromBody] ConvertUsdToBeansRequest request)
+        public async Task<ActionResult<object>> ConvertUsdToBeans([FromBody] ConvertUsdToGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -346,7 +346,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "USD amount must be positive" });
                 }
 
-                var success = await _walletService.ConvertUsdToBeansAsync(userId, request.UsdAmount);
+                var success = await _walletService.ConvertUsdToGemsAsync(userId, request.UsdAmount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -372,7 +372,7 @@ namespace Denudey.Api.Controllers
         {
             try
             {
-                var rate = await _walletService.GetBeanToUsdRateAsync();
+                var rate = await _walletService.GetGemsToUsdRateAsync();
                 return Ok(new { rate });
             }
             catch (Exception ex)
@@ -436,7 +436,7 @@ namespace Denudey.Api.Controllers
                 // In a real app, you would process payment here
                 // For now, we'll just add the beans directly
                 var description = $"Purchased {pack.name} - ${pack.price:F2}";
-                var success = await _walletService.AddBeansAsync(userId, pack.totalBeans, description);
+                var success = await _walletService.AddGemsAsync(userId, pack.totalBeans, description);
 
                 if (success)
                 {
