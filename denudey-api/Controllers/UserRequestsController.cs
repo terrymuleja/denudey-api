@@ -128,12 +128,12 @@ namespace Denudey.Api.Controllers
                 var currentUserId = GetCurrentUserId();
 
                 // Validate the request DTO
-                if (createRequestDto.ProductId == null)
+                if (createRequestDto.ProductId == Guid.Empty)
                 {
                     return BadRequest(new { error = "Product ID is required" });
                 }
 
-                if (createRequestDto.CreatorId == null)
+                if (createRequestDto.CreatorId == Guid.Empty)
                 {
                     return BadRequest(new { error = "Creator ID is required" });
                 }
