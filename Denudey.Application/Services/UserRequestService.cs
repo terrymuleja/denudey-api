@@ -388,7 +388,8 @@ namespace Denudey.Api.Application.Services
             // Refund beans to user if request was accepted
             if (request.Status == UserRequestStatus.Accepted)
             {
-                await _walletService.AddBeansAsync(request.RequestorId, request.TotalAmount);
+                var description = "Refund - Request Expired";
+                await _walletService.AddBeansAsync(request.RequestorId, request.TotalAmount, description);
             }
 
             request.Status = UserRequestStatus.Expired;
