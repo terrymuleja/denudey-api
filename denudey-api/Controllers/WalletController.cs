@@ -128,8 +128,8 @@ namespace Denudey.Api.Controllers
                 {
                     return BadRequest(new { message = "Amount must be positive" });
                 }
-
-                var success = await _walletService.AddBeansAsync(userId, request.Amount);
+                var descripton = "Manual add";
+                var success = await _walletService.AddBeansAsync(userId, request.Amount, descripton);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)

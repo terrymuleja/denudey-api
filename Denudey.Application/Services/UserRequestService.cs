@@ -326,7 +326,7 @@ namespace Denudey.Api.Application.Services
             if (isValid)
             {
                 // Release funds to creator (add beans to creator wallet)
-                await _walletService.AddBeansAsync(request.CreatorId, request.TotalAmount);
+                await _walletService.AddBeansAsync(request.CreatorId, request.TotalAmount, $"Release funds from [{request.Requester.Username}]");
                 request.Status = UserRequestStatus.Paid;
 
                 _logger.LogInformation("Request {RequestId} validated and paid", requestId);
@@ -334,7 +334,7 @@ namespace Denudey.Api.Application.Services
             else
             {
                 // Validation failed - refund user
-                await _walletService.AddBeansAsync(request.RequestorId, request.TotalAmount);
+                await _walletService.AddBeansAsync(request.RequestorId, request.TotalAmount, "Validation failed - Refund requester");
                 request.Status = UserRequestStatus.Dispute;
 
                 _logger.LogInformation("Request {RequestId} validation failed - refunded to user", requestId);
