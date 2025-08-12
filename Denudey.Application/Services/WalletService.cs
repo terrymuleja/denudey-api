@@ -106,7 +106,7 @@ namespace Denudey.Api.Application.Services
 
         #region BEAN Operations
 
-        public async Task<bool> AddBeansAsync(Guid userId, decimal amount)
+        public async Task<bool> AddBeansAsync(Guid userId, decimal amount, string description)
         {
             if (amount <= 0)
             {
@@ -126,7 +126,7 @@ namespace Denudey.Api.Application.Services
                     Type = WalletTransactionType.Credit,
                     Amount = amount,
                     Currency = "BEAN",
-                    Description = "Beans added to wallet"
+                    Description = description,
                 });
 
                 await _context.SaveChangesAsync();

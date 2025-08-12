@@ -436,7 +436,7 @@ namespace Denudey.Api.Controllers
                 // In a real app, you would process payment here
                 // For now, we'll just add the beans directly
                 var description = $"Purchased {pack.name} - ${pack.price:F2}";
-                var success = await _walletService.AddBeansAsync(userId, pack.totalBeans);
+                var success = await _walletService.AddBeansAsync(userId, pack.totalBeans, description);
 
                 if (success)
                 {

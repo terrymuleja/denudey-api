@@ -15,7 +15,7 @@ namespace Denudey.Api.Application.Interfaces
         Task<bool> HasSufficientBeansAsync(Guid userId, decimal amount);
 
         // BEAN operations
-        Task<bool> AddBeansAsync(Guid userId, decimal amount);
+        Task<bool> AddBeansAsync(Guid userId, decimal amount, string description);
         Task<bool> DeductBeansAsync(Guid userId, decimal amount);
         Task<bool> TransferBeansAsync(Guid fromUserId, Guid toUserId, decimal amount);
 
