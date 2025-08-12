@@ -19,6 +19,8 @@ using Denudey.Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using System.Collections;
+using Denudey.Api.Application.Services;
+using Denudey.Api.Application.Interfaces;
 
 namespace denudey_api
 {
@@ -146,6 +148,9 @@ namespace denudey_api
             builder.Services.AddScoped<IProductSearchIndexer, ProductSearchIndexer>();
             builder.Services.AddScoped<IProductsService, ProductsService>();
             builder.Services.AddScoped<ProductQueryService>();
+
+            builder.Services.AddScoped<IUserRequestService, UserRequestService>();
+            builder.Services.AddScoped<IWalletService, WalletService>();
 
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 

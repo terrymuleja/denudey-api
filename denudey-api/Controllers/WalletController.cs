@@ -57,7 +57,7 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Get wallet information for a user
         /// </summary>
-        [HttpGet("")]
+        [HttpGet]
         public async Task<ActionResult<UserWallet>> GetWallet()
         {
             var userId = GetUserId();
@@ -80,7 +80,7 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Get bean balance for a user
         /// </summary>
-        [HttpGet("{userId}/beans/balance")]
+        [HttpGet("beans/balance")]
         public async Task<ActionResult<object>> GetBeanBalance()
         {
             var userId = GetUserId();
@@ -99,7 +99,7 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Check if user has sufficient beans
         /// </summary>
-        [HttpGet("}/beans/sufficient")]
+        [HttpGet("beans/sufficient")]
         public async Task<ActionResult<object>> HasSufficientBeans([FromQuery] decimal amount)
         {
             var userId = GetUserId();
@@ -118,7 +118,7 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Add beans to user wallet
         /// </summary>
-        [HttpPost("{userId}/beans/add")]
+        [HttpPost("beans/add")]
         public async Task<ActionResult<object>> AddBeans([FromBody] AddBeansRequest request)
         {
             var userId = GetUserId();
@@ -146,7 +146,7 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Deduct beans from user wallet
         /// </summary>
-        [HttpPost("{userId}/beans/deduct")]
+        [HttpPost("beans/deduct")]
         public async Task<ActionResult<object>> DeductBeans([FromBody] DeductBeansRequest request)
         {
             var userId = GetUserId();
