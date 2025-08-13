@@ -118,27 +118,28 @@ namespace Denudey.Api.Controllers
         /// <summary>
         /// Create a new product request
         /// </summary>
-        /// <param name="createRequestDto">Request creation data</param>
+        /// <param name="model">Request creation data</param>
         /// <returns>Created request details</returns>
         [HttpPost]
-        public async Task<ActionResult<CreateRequestResponse>> CreateRequest([FromBody] CreateRequestInputDto createRequestDto)
+        //[Authorize(Roles = "requester")]
+        public async Task<ActionResult<CreateRequestResponse>> CreateRequest([FromBody] CreateRequestInputDto model)
         {
             try
             {
                 var currentUserId = GetCurrentUserId();
 
                 // Validate the request DTO
-                if (createRequestDto.ProductId == Guid.Empty)
+                if (model.ProductId == Guid.Empty)
                 {
                     return BadRequest(new { error = "Product ID is required" });
                 }
 
-                if (createRequestDto.CreatorId == null)
+                if (model.CreatorId == null)
                 {
                     return BadRequest(new { error = "Creator ID is required" });
                 }
 
-                if (string.IsNullOrEmpty(createRequestDto.SelectedDeadline))
+                if (string.IsNullOrEmpty(model.SelectedDeadline))
                 {
                     return BadRequest(new { error = "Deadline is required" });
                 }
@@ -148,9 +149,9 @@ namespace Denudey.Api.Controllers
                 var requestDto = new CreateUserRequestDto
                 {
                     RequestorId = currentUserId,
-                    ProductId = createRequestDto.ProductId,
-                    Text = createRequestDto.Message ?? string.Empty,
-                    DeadLine = MapStringToDeadline(createRequestDto.SelectedDeadline)
+                    ProductId = model.ProductId,
+                    Text = model.Message ?? string.Empty,
+                    DeadLine = MapStringToDeadline(model.SelectedDeadline)
                 };
 
                 // Create the request
