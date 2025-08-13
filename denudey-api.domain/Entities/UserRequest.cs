@@ -72,5 +72,7 @@ namespace Denudey.Api.Domain.Entities
         // Navigation properties (if using EF Core)
         public virtual RequesterSocial Requester { get; set; }
         public virtual CreatorSocial Creator { get; set; }
+
+        public string MainPhotoUrl { get; set; } = string.Empty;
     }
 }

@@ -12,6 +12,7 @@ using Denudey.Api.Domain.Exceptions;
 using System.Security.Claims;
 using Denudey.Application.Interfaces;
 using Denudey.Api.Domain.DTOs.Requests;
+using Denudey.Application.Services;
 
 namespace Denudey.Api.Controllers
 {
@@ -22,12 +23,15 @@ namespace Denudey.Api.Controllers
     {
         private readonly IUserRequestService _userRequestService;
         private readonly ILogger<UserRequestController> _logger;
+        private readonly ISocialService _socialService;
 
         public UserRequestController(
             IUserRequestService userRequestService,
+            ISocialService socialService,
             ILogger<UserRequestController> logger)
         {
             _userRequestService = userRequestService;
+            _socialService = socialService;
             _logger = logger;
         }
 
@@ -43,30 +47,40 @@ namespace Denudey.Api.Controllers
             return userId;
         }
 
-        private UserRequestResponseDto MapToDto(UserRequest request)
+        private async Task<UserRequestResponseDto> MapToDtoAsync(UserRequest request)
         {
-            return new UserRequestResponseDto
+            
+            var u = await _socialService.GetUserSocialProfileAsync(request.CreatorId, "model");
+            if (u != null)
             {
-                Id = request.Id,
-                ProductId = request.ProductId,
-                ProductName = request.ProductName,
-                BodyPart = request.BodyPart,
-                CreatorId = request.CreatorId,
-                RequestorId = request.RequestorId,
-                Text = request.Text,
-                Status = request.Status.ToString().ToLower(),
-                DeadLine = MapDeadlineToString(request.DeadLine),
-                PriceAmount = request.PriceAmount,
-                ExtraAmount = request.ExtraAmount,
-                TotalAmount = request.TotalAmount,
-                Tax = request.Tax,
-                DeliveredImageUrl = request.DeliveredImageUrl,
-                ExpectedDeliveredDate = request.ExpectedDeliveredDate,
-                DeliveredDate = request.DeliveredDate,
-                CreatedAt = request.CreatedAt,
-                ModifiedAt = request.ModifiedAt,
-                ValidationStatus = GetValidationStatus(request)
-            };
+                var userSocial = (CreatorSocial)u;
+                return new UserRequestResponseDto
+                {
+                    Id = request.Id,
+                    ProductId = request.ProductId,
+                    ProductName = request.ProductName,
+                    BodyPart = request.BodyPart,
+                    CreatorId = request.CreatorId,
+                    CreatorUsername = userSocial?.Username ?? "",
+                    MainPhotoUrl = request.MainPhotoUrl,
+                    RequestorId = request.RequestorId,
+                    Text = request.Text,
+                    Status = request.Status.ToString().ToLower(),
+                    DeadLine = MapDeadlineToString(request.DeadLine),
+                    PriceAmount = request.PriceAmount,
+                    ExtraAmount = request.ExtraAmount,
+                    TotalAmount = request.TotalAmount,
+                    Tax = request.Tax,
+                    DeliveredImageUrl = request.DeliveredImageUrl,
+                    ExpectedDeliveredDate = request.ExpectedDeliveredDate,
+                    DeliveredDate = request.DeliveredDate,
+                    CreatedAt = request.CreatedAt,
+                    ModifiedAt = request.ModifiedAt,
+                    ValidationStatus = GetValidationStatus(request)
+                };
+
+            }
+            throw new Exception("User not found");
         }
 
         private string GetValidationStatus(UserRequest request)
@@ -93,10 +107,10 @@ namespace Denudey.Api.Controllers
         {
             return deadline switch
             {
-                DeadLine.ThreeDays => "3-5 days",
-                DeadLine.Express48h => "48 hours",
-                DeadLine.Express24h => "24 hours",
-                _ => "3-5 days"
+                DeadLine.ThreeDays => "3d",
+                DeadLine.Express48h => "48h",
+                DeadLine.Express24h => "24h",
+                _ => "3d"
             };
         }
 
@@ -104,9 +118,9 @@ namespace Denudey.Api.Controllers
         {
             return deadline?.ToLower() switch
             {
-                "24 hours" => DeadLine.Express24h,
-                "48 hours" => DeadLine.Express48h,
-                "3-5 days" => DeadLine.ThreeDays,
+                "24h" => DeadLine.Express24h,
+                "48h" => DeadLine.Express48h,
+                "3d" => DeadLine.ThreeDays,
                 _ => DeadLine.ThreeDays
             };
         }
@@ -160,7 +174,7 @@ namespace Denudey.Api.Controllers
                 var response = new CreateRequestResponse
                 {
                     Success = true,
-                    Request = MapToDto(createdRequest)
+                    Request = await MapToDtoAsync(createdRequest)
                 };
 
                 _logger.LogInformation("Request created successfully: {RequestId} by user {UserId}",
@@ -224,7 +238,13 @@ namespace Denudey.Api.Controllers
                     .Take(pageSize)
                     .ToList();
 
-                var requestDtos = paginatedRequests.Select(MapToDto).ToList();
+                
+                var requestDtos = new List<UserRequestResponseDto>();
+                foreach (var request in paginatedRequests)
+                {
+                    var dto = await MapToDtoAsync(request);
+                    requestDtos.Add(dto);
+                }
 
                 var response = new GetRequestsResponse
                 {
@@ -283,7 +303,12 @@ namespace Denudey.Api.Controllers
                     .Take(pageSize)
                     .ToList();
 
-                var requestDtos = paginatedRequests.Select(MapToDto).ToList();
+                var requestDtos = new List<UserRequestResponseDto>();
+                foreach (var request in paginatedRequests)
+                {
+                    var dto = await MapToDtoAsync(request);
+                    requestDtos.Add(dto);
+                }
 
                 var response = new GetRequestsResponse
                 {
@@ -330,8 +355,8 @@ namespace Denudey.Api.Controllers
                 {
                     return Forbid("You can only access your own requests");
                 }
-
-                return Ok(MapToDto(request));
+                var result = await MapToDtoAsync(request);
+                return Ok(result);
             }
             catch (DenudeyNotFoundException)
             {
@@ -395,7 +420,8 @@ namespace Denudey.Api.Controllers
                 var response = new UpdateRequestResponse
                 {
                     Success = true,
-                    Request = MapToDto(updatedRequest)
+
+                    Request = await MapToDtoAsync(updatedRequest)
                 };
 
                 _logger.LogInformation("Request {RequestId} status updated to {Status} by user {UserId}",
@@ -451,7 +477,7 @@ namespace Denudey.Api.Controllers
                 var response = new UpdateRequestResponse
                 {
                     Success = true,
-                    Request = MapToDto(updatedRequest)
+                    Request = await MapToDtoAsync(updatedRequest)
                 };
 
                 _logger.LogInformation("Request {RequestId} cancelled by user {UserId}", requestId, currentUserId);
@@ -518,7 +544,7 @@ namespace Denudey.Api.Controllers
                 var response = new UpdateRequestResponse
                 {
                     Success = true,
-                    Request = MapToDto(updatedRequest)
+                    Request = await MapToDtoAsync(updatedRequest)
                 };
 
                 _logger.LogInformation("Request {RequestId} delivered by user {UserId}", requestId, currentUserId);

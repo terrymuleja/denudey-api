@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Denudey.Api.Domain.Models;
 
 namespace Denudey.Api.Domain.DTOs.Requests
 {
@@ -20,12 +21,15 @@ namespace Denudey.Api.Domain.DTOs.Requests
         public decimal ExtraAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal Tax { get; set; }
-        public string Status { get; set; } = string.Empty;
+        
         public string DeadLine { get; set; } = string.Empty;
         public DateTime? ExpectedDeliveredDate { get; set; }
         public DateTime? DeliveredDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
         public string ValidationStatus { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string MainPhotoUrl { get; set; } = string.Empty;
+        public string CreatorUsername { get; set; } = string.Empty;
     }
 }

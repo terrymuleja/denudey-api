@@ -14,6 +14,7 @@ using Denudey.Api.Application.Interfaces;
 using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Exceptions;
 using Denudey.Api.Domain.DTOs.Requests;
+using Elastic.Clients.Elasticsearch.IndexManagement;
 
 namespace Denudey.Api.Application.Services
 {
@@ -150,11 +151,12 @@ namespace Denudey.Api.Application.Services
 
         public async Task<IEnumerable<UserRequest>> GetRequestsForRequesterAsync(Guid requestorId)
         {
-            return await _context.UserRequests
+            var data = await _context.UserRequests
                 .Include(ur => ur.Creator)
                 .Where(ur => ur.RequestorId == requestorId)
                 .OrderByDescending(ur => ur.CreatedAt)
                 .ToListAsync();
+            return data;
         }
 
         public async Task<IEnumerable<UserRequest>> GetRequestsByStatusAsync(UserRequestStatus status)
