@@ -259,7 +259,7 @@ namespace Denudey.Api.Services.Infrastructure.DbContexts
             {
                 entity.HasKey(e => e.UserId);
 
-                entity.Property(e => e.BeanBalance)
+                entity.Property(e => e.GemBalance)
                     .HasColumnType("decimal(18,2)")
                     .IsRequired();
 
@@ -274,8 +274,8 @@ namespace Denudey.Api.Services.Infrastructure.DbContexts
                     .IsRequired();
 
                 // Indexes
-                entity.HasIndex(e => e.BeanBalance)
-                    .HasDatabaseName("IX_UserWallets_BeanBalance");
+                entity.HasIndex(e => e.GemBalance)
+                    .HasDatabaseName("IX_UserWallets_GemBalance");
 
                 entity.HasIndex(e => e.UsdBalance)
                     .HasDatabaseName("IX_UserWallets_UsdBalance");

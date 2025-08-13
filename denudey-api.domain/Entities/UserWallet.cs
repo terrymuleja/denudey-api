@@ -13,7 +13,7 @@ namespace Denudey.Api.Domain.Entities
         public Guid UserId { get; set; }
 
         [Required]
-        public decimal BeanBalance { get; set; }
+        public decimal GemBalance { get; set; }
 
         [Required]
         public decimal UsdBalance { get; set; }

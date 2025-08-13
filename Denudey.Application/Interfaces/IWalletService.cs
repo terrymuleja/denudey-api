@@ -10,9 +10,9 @@ namespace Denudey.Api.Application.Interfaces
         // READ operations
         Task<UserWallet> CreateWalletAsync(Guid userId);
         Task<UserWallet> GetWalletAsync(Guid userId);
-        Task<decimal> GetBeanBalanceAsync(Guid userId);
+        Task<decimal> GetGemBalanceAsync(Guid userId);
         Task<decimal> GetUsdBalanceAsync(Guid userId);
-        Task<bool> HasSufficientBeansAsync(Guid userId, decimal amount);
+        Task<bool> HasSufficientGemsAsync(Guid userId, decimal amount);
 
         // BEAN operations
         Task<bool> AddGemsAsync(Guid userId, decimal amount, string description);

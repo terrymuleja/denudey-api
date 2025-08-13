@@ -133,7 +133,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { error = "Product ID is required" });
                 }
 
-                if (createRequestDto.CreatorId == Guid.Empty)
+                if (createRequestDto.CreatorId == null)
                 {
                     return BadRequest(new { error = "Creator ID is required" });
                 }

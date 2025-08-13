@@ -37,7 +37,7 @@ namespace Denudey.Api.Domain.Entities
         public string DeliveredImageUrl { get; set; } = string.Empty; // Cloudinary URL
         
         [Required]
-        public decimal PriceAmount { get; set; } // Base price (3 beans)
+        public decimal PriceAmount { get; set; } // Base price (3 gems)
 
         public decimal ExtraAmount { get; set; } // Extra charges for express delivery
 

@@ -9,7 +9,7 @@ namespace Denudey.Api.Domain.DTOs
     public class UserWalletDto
     {
         public Guid UserId { get; set; }
-        public decimal BeanBalance { get; set; }
+        public decimal GemBalance { get; set; }
         public decimal UsdBalance { get; set; }
     }
 }

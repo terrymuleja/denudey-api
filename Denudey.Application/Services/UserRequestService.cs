@@ -45,11 +45,11 @@ namespace Denudey.Api.Application.Services
                 // Calculate total cost based on deadline
                 var (totalCost, extraCost) = CalculateCost(request.DeadLine);
 
-                // Check if user has sufficient beans
+                // Check if user has sufficient gems
                 var userWallet = await _walletService.GetWalletAsync(request.RequestorId);
-                if (userWallet.BeanBalance < totalCost)
+                if (userWallet.GemBalance < totalCost)
                 {
-                    throw new InsufficientFundsException("Not enough beans to create request");
+                    throw new InsufficientFundsException("Not enough gems to create request");
                 }
 
                 // Get product details from ElasticSearch
@@ -268,7 +268,7 @@ namespace Denudey.Api.Application.Services
                 throw new InvalidOperationException("Request is not in pending status");
             }
 
-            // Move beans to escrow (manual escrow - just deduct from wallet)
+            // Move gems to escrow (manual escrow - just deduct from wallet)
             await _walletService.DeductGemsAsync(request.RequestorId, request.TotalAmount);
 
             // Update request status
@@ -326,7 +326,7 @@ namespace Denudey.Api.Application.Services
 
             if (isValid)
             {
-                // Release funds to creator (add beans to creator wallet)
+                // Release funds to creator (add gems to creator wallet)
                 await _walletService.AddGemsAsync(request.CreatorId, request.TotalAmount, $"Release funds from [{request.Requester.Username}]");
                 request.Status = UserRequestStatus.Paid;
 
@@ -386,7 +386,7 @@ namespace Denudey.Api.Application.Services
         {
             var request = await GetRequestByIdAsync(requestId);
 
-            // Refund beans to user if request was accepted
+            // Refund gems to user if request was accepted
             if (request.Status == UserRequestStatus.Accepted)
             {
                 var description = "Refund - Request Expired";

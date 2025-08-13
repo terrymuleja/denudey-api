@@ -20,7 +20,7 @@ namespace Denudey.Api.Application.Services
         private readonly ILogger<WalletService> _logger;
 
         // Gems to USD conversion rate (you can make this configurable)
-        private const decimal GEM_TO_USD_RATE = 0.33m; // 1 bean = $0.33
+        private const decimal GEM_TO_USD_RATE = 0.33m; // 1 gem = $0.33
 
         public WalletService(StatsDbContext context, ILogger<WalletService> logger)
         {
@@ -46,7 +46,7 @@ namespace Denudey.Api.Application.Services
                 var wallet = new UserWallet
                 {
                     UserId = userId,
-                    BeanBalance = 0m,
+                    GemBalance = 0m,
                     UsdBalance = 0m,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
@@ -84,10 +84,10 @@ namespace Denudey.Api.Application.Services
             return wallet;
         }
 
-        public async Task<decimal> GetBeanBalanceAsync(Guid userId)
+        public async Task<decimal> GetGemBalanceAsync(Guid userId)
         {
             var wallet = await GetWalletAsync(userId);
-            return wallet.BeanBalance;
+            return wallet.GemBalance;
         }
 
         public async Task<decimal> GetUsdBalanceAsync(Guid userId)
@@ -96,9 +96,9 @@ namespace Denudey.Api.Application.Services
             return wallet.UsdBalance;
         }
 
-        public async Task<bool> HasSufficientBeansAsync(Guid userId, decimal amount)
+        public async Task<bool> HasSufficientGemsAsync(Guid userId, decimal amount)
         {
-            var balance = await GetBeanBalanceAsync(userId);
+            var balance = await GetGemBalanceAsync(userId);
             return balance >= amount;
         }
 
@@ -116,7 +116,7 @@ namespace Denudey.Api.Application.Services
             try
             {
                 var wallet = await GetWalletAsync(userId);
-                wallet.BeanBalance += amount;
+                wallet.GemBalance += amount;
                 wallet.LastUpdated = DateTime.UtcNow;
 
                 // Create transaction record
@@ -131,14 +131,14 @@ namespace Denudey.Api.Application.Services
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Added {Amount} beans to user {UserId}. New balance: {Balance}",
-                    amount, userId, wallet.BeanBalance);
+                _logger.LogInformation("Added {Amount} gems to user {UserId}. New balance: {Balance}",
+                    amount, userId, wallet.GemBalance);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding {Amount} beans to user {UserId}", amount, userId);
+                _logger.LogError(ex, "Error adding {Amount} gems to user {UserId}", amount, userId);
                 return false;
             }
         }
@@ -154,12 +154,12 @@ namespace Denudey.Api.Application.Services
             {
                 var wallet = await GetWalletAsync(userId);
 
-                if (wallet.BeanBalance < amount)
+                if (wallet.GemBalance < amount)
                 {
-                    throw new InsufficientFundsException($"Insufficient bean balance. Required: {amount}, Available: {wallet.BeanBalance}");
+                    throw new InsufficientFundsException($"Insufficient gem balance. Required: {amount}, Available: {wallet.GemBalance}");
                 }
 
-                wallet.BeanBalance -= amount;
+                wallet.GemBalance -= amount;
                 wallet.LastUpdated = DateTime.UtcNow;
 
                 // Create transaction record
@@ -169,19 +169,19 @@ namespace Denudey.Api.Application.Services
                     Type = WalletTransactionType.Debit,
                     Amount = amount,
                     Currency = "BEAN",
-                    Description = "Beans deducted from wallet"
+                    Description = "Gems deducted from wallet"
                 });
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Deducted {Amount} beans from user {UserId}. New balance: {Balance}",
-                    amount, userId, wallet.BeanBalance);
+                _logger.LogInformation("Deducted {Amount} gems from user {UserId}. New balance: {Balance}",
+                    amount, userId, wallet.GemBalance);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deducting {Amount} beans from user {UserId}", amount, userId);
+                _logger.LogError(ex, "Error deducting {Amount} gems from user {UserId}", amount, userId);
                 return false;
             }
         }
@@ -200,17 +200,17 @@ namespace Denudey.Api.Application.Services
 
                 // Deduct from sender
                 var fromWallet = await GetWalletAsync(fromUserId);
-                if (fromWallet.BeanBalance < amount)
+                if (fromWallet.GemBalance < amount)
                 {
-                    throw new InsufficientFundsException($"Insufficient bean balance for transfer. Required: {amount}, Available: {fromWallet.BeanBalance}");
+                    throw new InsufficientFundsException($"Insufficient gem balance for transfer. Required: {amount}, Available: {fromWallet.GemBalance}");
                 }
 
-                fromWallet.BeanBalance -= amount;
+                fromWallet.GemBalance -= amount;
                 fromWallet.LastUpdated = DateTime.UtcNow;
 
                 // Add to receiver
                 var toWallet = await GetWalletAsync(toUserId);
-                toWallet.BeanBalance += amount;
+                toWallet.GemBalance += amount;
                 toWallet.LastUpdated = DateTime.UtcNow;
 
                 // Create transaction records
@@ -235,14 +235,14 @@ namespace Denudey.Api.Application.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                _logger.LogInformation("Transferred {Amount} beans from user {FromUserId} to user {ToUserId}",
+                _logger.LogInformation("Transferred {Amount} gems from user {FromUserId} to user {ToUserId}",
                     amount, fromUserId, toUserId);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error transferring {Amount} beans from user {FromUserId} to user {ToUserId}",
+                _logger.LogError(ex, "Error transferring {Amount} gems from user {FromUserId} to user {ToUserId}",
                     amount, fromUserId, toUserId);
                 return false;
             }
@@ -340,21 +340,21 @@ namespace Denudey.Api.Application.Services
         {
             if (gemsAmount <= 0)
             {
-                throw new ArgumentException("Bean amount must be positive", nameof(gemsAmount));
+                throw new ArgumentException("Gem amount must be positive", nameof(gemsAmount));
             }
 
             try
             {
                 var wallet = await GetWalletAsync(userId);
 
-                if (wallet.BeanBalance < gemsAmount)
+                if (wallet.GemBalance < gemsAmount)
                 {
-                    throw new InsufficientFundsException($"Insufficient bean balance for conversion. Required: {gemsAmount}, Available: {wallet.BeanBalance}");
+                    throw new InsufficientFundsException($"Insufficient gem balance for conversion. Required: {gemsAmount}, Available: {wallet.GemBalance}");
                 }
 
                 var usdAmount = gemsAmount * GEM_TO_USD_RATE;
 
-                wallet.BeanBalance -= gemsAmount;
+                wallet.GemBalance -= gemsAmount;
                 wallet.UsdBalance += usdAmount;
                 wallet.LastUpdated = DateTime.UtcNow;
 
@@ -365,19 +365,19 @@ namespace Denudey.Api.Application.Services
                     Type = WalletTransactionType.Conversion,
                     Amount = gemsAmount,
                     Currency = "BEAN_TO_USD",
-                    Description = $"Converted {gemsAmount} beans to ${usdAmount:F2}"
+                    Description = $"Converted {gemsAmount} gems to ${usdAmount:F2}"
                 });
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Converted {BeanAmount} beans to ${UsdAmount} for user {UserId}",
+                _logger.LogInformation("Converted {GemAmount} gems to ${UsdAmount} for user {UserId}",
                     gemsAmount, usdAmount, userId);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting {BeanAmount} beans to USD for user {UserId}", gemsAmount, userId);
+                _logger.LogError(ex, "Error converting {GemAmount} gems to USD for user {UserId}", gemsAmount, userId);
                 return false;
             }
         }
@@ -401,7 +401,7 @@ namespace Denudey.Api.Application.Services
                 var beanAmount = usdAmount / GEM_TO_USD_RATE;
 
                 wallet.UsdBalance -= usdAmount;
-                wallet.BeanBalance += beanAmount;
+                wallet.GemBalance += beanAmount;
                 wallet.LastUpdated = DateTime.UtcNow;
 
                 // Create transaction record
@@ -411,19 +411,19 @@ namespace Denudey.Api.Application.Services
                     Type = WalletTransactionType.Conversion,
                     Amount = usdAmount,
                     Currency = "USD_TO_BEAN",
-                    Description = $"Converted ${usdAmount:F2} to {beanAmount} beans"
+                    Description = $"Converted ${usdAmount:F2} to {beanAmount} gems"
                 });
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Converted ${UsdAmount} to {BeanAmount} beans for user {UserId}",
+                _logger.LogInformation("Converted ${UsdAmount} to {GemAmount} gems for user {UserId}",
                     usdAmount, beanAmount, userId);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting ${UsdAmount} to beans for user {UserId}", usdAmount, userId);
+                _logger.LogError(ex, "Error converting ${UsdAmount} to gems for user {UserId}", usdAmount, userId);
                 return false;
             }
         }

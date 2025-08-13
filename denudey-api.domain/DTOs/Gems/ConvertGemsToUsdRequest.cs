@@ -9,6 +9,6 @@ namespace Denudey.Api.Domain.DTOs.Gems
     public class ConvertGemsToUsdRequest
     {
 
-        public decimal BeanAmount { get; set; }
+        public decimal GemAmount { get; set; }
     }
 }

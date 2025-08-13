@@ -75,51 +75,51 @@ namespace Denudey.Api.Controllers
 
         #endregion
 
-        #region Bean Operations
+        #region Gem Operations
 
         /// <summary>
-        /// Get bean balance for a user
+        /// Get gem balance for a user
         /// </summary>
-        [HttpGet("beans/balance")]
-        public async Task<ActionResult<object>> GetBeanBalance()
+        [HttpGet("gems/balance")]
+        public async Task<ActionResult<object>> GetGemBalance()
         {
             var userId = GetUserId();
             try
             {
-                var balance = await _walletService.GetBeanBalanceAsync(userId);
+                var balance = await _walletService.GetGemBalanceAsync(userId);
                 return Ok(new { balance });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving bean balance for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while retrieving bean balance" });
+                _logger.LogError(ex, "Error retrieving gem balance for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while retrieving gem balance" });
             }
         }
 
         /// <summary>
-        /// Check if user has sufficient beans
+        /// Check if user has sufficient gems
         /// </summary>
-        [HttpGet("beans/sufficient")]
-        public async Task<ActionResult<object>> HasSufficientBeans([FromQuery] decimal amount)
+        [HttpGet("gems/sufficient")]
+        public async Task<ActionResult<object>> HasSufficientGems([FromQuery] decimal amount)
         {
             var userId = GetUserId();
             try
             {
-                var hasSufficient = await _walletService.HasSufficientBeansAsync(userId, amount);
+                var hasSufficient = await _walletService.HasSufficientGemsAsync(userId, amount);
                 return Ok(new { hasSufficient });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking sufficient beans for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while checking bean balance" });
+                _logger.LogError(ex, "Error checking sufficient gems for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while checking gem balance" });
             }
         }
 
         /// <summary>
-        /// Add beans to user wallet
+        /// Add gems to user wallet
         /// </summary>
-        [HttpPost("beans/add")]
-        public async Task<ActionResult<object>> AddBeans([FromBody] AddGemsRequest request)
+        [HttpPost("gems/add")]
+        public async Task<ActionResult<object>> AddGems([FromBody] AddGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -138,16 +138,16 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding beans for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while adding beans" });
+                _logger.LogError(ex, "Error adding gems for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while adding gems" });
             }
         }
 
         /// <summary>
-        /// Deduct beans from user wallet
+        /// Deduct gems from user wallet
         /// </summary>
-        [HttpPost("beans/deduct")]
-        public async Task<ActionResult<object>> DeductBeans([FromBody] DeductGemsRequest request)
+        [HttpPost("gems/deduct")]
+        public async Task<ActionResult<object>> DeductGems([FromBody] DeductGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -170,16 +170,16 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deducting beans for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while deducting beans" });
+                _logger.LogError(ex, "Error deducting gems for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while deducting gems" });
             }
         }
 
         /// <summary>
-        /// Transfer beans between users
+        /// Transfer gems between users
         /// </summary>
-        [HttpPost("beans/transfer")]
-        public async Task<ActionResult<object>> TransferBeans([FromBody] TransferGemsRequest request)
+        [HttpPost("gems/transfer")]
+        public async Task<ActionResult<object>> TransferGems([FromBody] TransferGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -207,9 +207,9 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error transferring beans from {FromUserId} to {ToUserId}",
+                _logger.LogError(ex, "Error transferring gems from {FromUserId} to {ToUserId}",
                     userId, request.ToUserId);
-                return StatusCode(500, new { message = "An error occurred while transferring beans" });
+                return StatusCode(500, new { message = "An error occurred while transferring gems" });
             }
         }
 
@@ -301,20 +301,20 @@ namespace Denudey.Api.Controllers
         #region Conversion Operations
 
         /// <summary>
-        /// Convert beans to USD
+        /// Convert gems to USD
         /// </summary>
-        [HttpPost("convert/beans-to-usd")]
-        public async Task<ActionResult<object>> ConvertBeansToUsd([FromBody] ConvertGemsToUsdRequest request)
+        [HttpPost("convert/gems-to-usd")]
+        public async Task<ActionResult<object>> ConvertGemsToUsd([FromBody] ConvertGemsToUsdRequest request)
         {
             var userId = GetUserId();
             try
             {
-                if (request.BeanAmount <= 0)
+                if (request.GemAmount <= 0)
                 {
-                    return BadRequest(new { message = "Bean amount must be positive" });
+                    return BadRequest(new { message = "Gem amount must be positive" });
                 }
 
-                var success = await _walletService.ConvertGemsToUsdAsync(userId, request.BeanAmount);
+                var success = await _walletService.ConvertGemsToUsdAsync(userId, request.GemAmount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -327,16 +327,16 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting beans to USD for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while converting beans to USD" });
+                _logger.LogError(ex, "Error converting gems to USD for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while converting gems to USD" });
             }
         }
 
         /// <summary>
-        /// Convert USD to beans
+        /// Convert USD to gems
         /// </summary>
-        [HttpPost("convert/usd-to-beans")]
-        public async Task<ActionResult<object>> ConvertUsdToBeans([FromBody] ConvertUsdToGemsRequest request)
+        [HttpPost("convert/usd-to-gems")]
+        public async Task<ActionResult<object>> ConvertUsdToGems([FromBody] ConvertUsdToGemsRequest request)
         {
             var userId = GetUserId();
             try
@@ -359,16 +359,16 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting USD to beans for user {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while converting USD to beans" });
+                _logger.LogError(ex, "Error converting USD to gems for user {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while converting USD to gems" });
             }
         }
 
         /// <summary>
-        /// Get current bean to USD exchange rate
+        /// Get current gem to USD exchange rate
         /// </summary>
-        [HttpGet("exchange-rate/bean-to-usd")]
-        public async Task<ActionResult<object>> GetBeanToUsdRate()
+        [HttpGet("exchange-rate/gem-to-usd")]
+        public async Task<ActionResult<object>> GetGemToUsdRate()
         {
             try
             {
@@ -377,7 +377,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving bean to USD rate");
+                _logger.LogError(ex, "Error retrieving gem to USD rate");
                 return StatusCode(500, new { message = "An error occurred while retrieving exchange rate" });
             }
         }
@@ -419,7 +419,7 @@ namespace Denudey.Api.Controllers
             try
             {
                 // Define credit packs (in a real app, this might come from a configuration service)
-                var creditPacks = new Dictionary<string, (decimal price, int totalBeans, string name)>
+                var creditPacks = new Dictionary<string, (decimal price, int totalGems, string name)>
                 {
                     { "starter", (5.00m, 11, "Starter Pack") },
                     { "popular", (10.00m, 23, "Popular Pack") },
@@ -434,9 +434,9 @@ namespace Denudey.Api.Controllers
                 var pack = creditPacks[request.PackId.ToLower()];
 
                 // In a real app, you would process payment here
-                // For now, we'll just add the beans directly
+                // For now, we'll just add the gems directly
                 var description = $"Purchased {pack.name} - ${pack.price:F2}";
-                var success = await _walletService.AddGemsAsync(userId, pack.totalBeans, description);
+                var success = await _walletService.AddGemsAsync(userId, pack.totalGems, description);
 
                 if (success)
                 {
@@ -445,7 +445,7 @@ namespace Denudey.Api.Controllers
                     {
                         UserId = userId,
                         Type = WalletTransactionType.Credit,
-                        Amount = pack.totalBeans,
+                        Amount = pack.totalGems,
                         Currency = "BEAN",
                         Description = description
                     });
