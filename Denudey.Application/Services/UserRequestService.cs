@@ -61,9 +61,7 @@ namespace Denudey.Api.Application.Services
                     throw new DenudeyNotFoundException("Product not found");
                 }
 
-                // Calculate expected delivery date
-                var expectedDate = CalculateExpectedDeliveryDate(request.DeadLine);
-
+                
                 // Create the request
                 var userRequest = new UserRequest
                 {
@@ -72,6 +70,7 @@ namespace Denudey.Api.Application.Services
                     ProductId = request.ProductId,
                     CreatorId = product.CreatedBy,
                     ProductName = product.ProductName,
+                    MainPhotoUrl = product.MainPhotoUrl,
                     BodyPart = product.BodyPart,
                     Text = request.Text ?? string.Empty,
                     DeliveredImageUrl = string.Empty,
@@ -81,7 +80,7 @@ namespace Denudey.Api.Application.Services
                     Tax = CalculateTax(totalCost),
                     Status = UserRequestStatus.Pending,
                     DeadLine = request.DeadLine,
-                    ExpectedDeliveredDate = expectedDate,
+                    
                     DeliveredDate = null,
                     CreatedAt = DateTime.UtcNow,
                     ModifiedAt = DateTime.UtcNow,
@@ -240,7 +239,7 @@ namespace Denudey.Api.Application.Services
             if (updateDto.DeadLine.HasValue)
             {
                 request.DeadLine = updateDto.DeadLine.Value;
-                request.ExpectedDeliveredDate = CalculateExpectedDeliveryDate(updateDto.DeadLine.Value);
+                
 
                 // Recalculate costs if deadline changed
                 var (totalCost, extraCost) = CalculateCost(updateDto.DeadLine.Value);
@@ -277,9 +276,12 @@ namespace Denudey.Api.Application.Services
                 {
                     throw new InvalidOperationException("Request is not in pending status");
                 }
+                // Calculate expected delivery date
+                request.AcceptedAt = DateTime.UtcNow;
+                var expectedDate = CalculateExpectedDeliveryDate(request.DeadLine, request.AcceptedAt);
 
                 // Update request status
-                request.AcceptedAt = DateTime.UtcNow;
+                request.ExpectedDeliveredDate = expectedDate;
                 request.Status = UserRequestStatus.Accepted;
                 request.ModifiedAt = DateTime.UtcNow;
 
@@ -516,17 +518,16 @@ namespace Denudey.Api.Application.Services
             };
         }
 
-        private DateTime CalculateExpectedDeliveryDate(DeadLine deadLine)
+        private DateTime CalculateExpectedDeliveryDate(DeadLine deadLine, DateTime? dateAccepted)
         {
             return deadLine switch
             {
-                DeadLine.ThreeDays => DateTime.UtcNow.AddDays(5), // 3-5 days, use 5 as max
-                DeadLine.Express48h => DateTime.UtcNow.AddHours(48),
-                DeadLine.Express24h => DateTime.UtcNow.AddHours(24),
-                _ => DateTime.UtcNow.AddDays(5)
+                DeadLine.ThreeDays => dateAccepted?.AddDays(3) ?? DateTime.Now.AddDays(5), // 3-5 days, use 5 as max
+                DeadLine.Express48h => dateAccepted?.AddHours(48) ?? DateTime.Now.AddHours(48),
+                DeadLine.Express24h => dateAccepted?.AddHours(2) ?? DateTime.Now.AddHours(2),
+                _ => dateAccepted?.AddDays(5) ?? DateTime.Now.AddDays(5)
             };
         }
-
         private decimal CalculateTax(decimal amount)
         {
             // Implement your tax calculation logic

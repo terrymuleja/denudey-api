@@ -32,7 +32,7 @@ namespace Denudey.Api.Domain.DTOs.Requests
         public string MainPhotoUrl { get; set; } = string.Empty;
         public string CreatorUsername { get; set; } = string.Empty;
 
-        public DateTime AcceptedAt { get; set; }
+        public DateTime? AcceptedAt { get; set; }
 
     }
 }
