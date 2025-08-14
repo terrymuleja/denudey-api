@@ -17,6 +17,8 @@ namespace Denudey.Api.Application.Interfaces
         // BEAN operations
         Task<bool> AddGemsAsync(Guid userId, decimal amount, string description);
         Task<bool> DeductGemsAsync(Guid userId, decimal amount);
+
+        
         Task<bool> TransferGemsAsync(Guid fromUserId, Guid toUserId, decimal amount);
 
         // USD operations

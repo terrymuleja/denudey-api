@@ -31,7 +31,7 @@ namespace Denudey.Application.Interfaces
         // UPDATE
         Task<UserRequest> UpdateRequestAsync(Guid requestId, UpdateUserRequestDto updateDto);
         Task<UserRequest> AcceptRequestAsync(Guid requestId, Guid creatorId);
-        Task<UserRequest> DeliverRequestAsync(Guid requestId, string imageUrl);
+        Task<UserRequest> DeliverRequestAsync(Guid requestId, Guid creatorId, string imageUrl);
         Task<UserRequest> ValidateRequestAsync(Guid requestId, RequestValidationResult validation);
         Task<UserRequest> UpdateStatusAsync(Guid requestId, UserRequestStatus status);
         Task<UserRequest> CancelRequestAsync(Guid requestId, Guid userId);

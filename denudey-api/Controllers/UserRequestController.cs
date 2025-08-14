@@ -76,7 +76,9 @@ namespace Denudey.Api.Controllers
                     DeliveredDate = request.DeliveredDate,
                     CreatedAt = request.CreatedAt,
                     ModifiedAt = request.ModifiedAt,
-                    ValidationStatus = GetValidationStatus(request)
+                    ValidationStatus = GetValidationStatus(request),
+                    AcceptedAt = request.AcceptedAt,
+
                 };
 
             }
@@ -539,7 +541,7 @@ namespace Denudey.Api.Controllers
                     return Forbid("Only the creator can deliver this request");
                 }
 
-                var updatedRequest = await _userRequestService.DeliverRequestAsync(requestId, deliverDto.ImageUrl);
+                var updatedRequest = await _userRequestService.DeliverRequestAsync(requestId, currentUserId, deliverDto.ImageUrl);
 
                 var response = new UpdateRequestResponse
                 {

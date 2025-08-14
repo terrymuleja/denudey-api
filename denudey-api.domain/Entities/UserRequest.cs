@@ -63,6 +63,7 @@ namespace Denudey.Api.Domain.Entities
         [Required]
         public DateTime ModifiedAt { get; set; }
 
+        public DateTime AcceptedAt { get; set; }
 
         // AI Validation flags
         public bool? BodyPartValidated { get; set; }

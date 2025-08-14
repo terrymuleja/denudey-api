@@ -15,6 +15,7 @@ using Denudey.Api.Domain.DTOs;
 using Denudey.Api.Domain.Exceptions;
 using Denudey.Api.Domain.DTOs.Requests;
 using Elastic.Clients.Elasticsearch.IndexManagement;
+using Elastic.Clients.Elasticsearch.Security;
 
 namespace Denudey.Api.Application.Services
 {
@@ -258,54 +259,73 @@ namespace Denudey.Api.Application.Services
 
         public async Task<UserRequest> AcceptRequestAsync(Guid requestId, Guid creatorId)
         {
-            var request = await GetRequestByIdAsync(requestId);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            if (request.CreatorId != creatorId)
+            return await strategy.ExecuteAsync(async () =>
             {
-                throw new DenudeyUnauthorizedAccessException("Not authorized to accept this request");
-            }
+                // ALL database operations inside this block are part of the same retryable unit
+                // The strategy handles transactions internally
 
-            if (request.Status != UserRequestStatus.Pending)
-            {
-                throw new InvalidOperationException("Request is not in pending status");
-            }
+                var request = await GetRequestByIdAsync(requestId);
 
-            // Move gems to escrow (manual escrow - just deduct from wallet)
-            await _walletService.DeductGemsAsync(request.RequestorId, request.TotalAmount);
+                if (request.CreatorId != creatorId)
+                {
+                    throw new DenudeyUnauthorizedAccessException("Not authorized to accept this request");
+                }
 
-            // Update request status
-            request.Status = UserRequestStatus.Accepted;
-            request.ModifiedAt = DateTime.UtcNow;
+                if (request.Status != UserRequestStatus.Pending)
+                {
+                    throw new InvalidOperationException("Request is not in pending status");
+                }
 
-            await _context.SaveChangesAsync();
+                // Update request status
+                request.AcceptedAt = DateTime.UtcNow;
+                request.Status = UserRequestStatus.Accepted;
+                request.ModifiedAt = DateTime.UtcNow;
 
-            _logger.LogInformation("Request {RequestId} accepted by creator {CreatorId}",
-                requestId, creatorId);
+                // Move gems to escrow (manual escrow - just deduct from wallet)
+                await _walletService.DeductGemsAsync(request.RequestorId, request.TotalAmount);
 
-            return request;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Request {RequestId} accepted by creator {CreatorId}",
+                    requestId, creatorId);
+
+                return request;
+            });                      
         }
 
-        public async Task<UserRequest> DeliverRequestAsync(Guid requestId, string imageUrl)
+        public async Task<UserRequest> DeliverRequestAsync(Guid requestId, Guid creatorId, string imageUrl)
         {
-            var request = await GetRequestByIdAsync(requestId);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            if (request.Status != UserRequestStatus.Accepted)
+            return await strategy.ExecuteAsync(async () =>
             {
-                throw new InvalidOperationException("Request is not in accepted status");
-            }
+                var request = await GetRequestByIdAsync(requestId);
 
-            // Update request with delivery details
-            request.DeliveredImageUrl = imageUrl;
-            request.DeliveredDate = DateTime.UtcNow;
-            request.Status = UserRequestStatus.Delivered;
-            request.ModifiedAt = DateTime.UtcNow;
+                if (request.Status != UserRequestStatus.Accepted)
+                {
+                    throw new InvalidOperationException("Request is not in accepted status");
+                }
 
-            await _context.SaveChangesAsync();
+                // Update request with delivery details
+                request.DeliveredImageUrl = imageUrl;
+                request.DeliveredDate = DateTime.UtcNow;
+                request.Status = UserRequestStatus.Delivered;
+                request.ModifiedAt = DateTime.UtcNow;
 
-            _logger.LogInformation("Request {RequestId} delivered with image {ImageUrl}",
-                requestId, imageUrl);
+                // Move gems to Creator 
+                var description = $"Delivery: order '{request.BodyPart}-{request.Text}' to '{request.Requester.Username}'";
+                await _walletService.AddGemsAsync(request.CreatorId, request.TotalAmount, description);
 
-            return request;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Request {RequestId} delivered with image {ImageUrl}",
+                    requestId, imageUrl);
+
+                return request;
+            });
+            
         }
 
         public async Task<UserRequest> ValidateRequestAsync(Guid requestId, RequestValidationResult validation)
@@ -368,6 +388,11 @@ namespace Denudey.Api.Application.Services
             if (request.RequestorId != userId)
             {
                 throw new UnauthorizedAccessException("Not authorized to cancel this request");
+            }
+
+            if (request.Status != UserRequestStatus.Pending)
+            {
+                throw new InvalidOperationException("Cannot cancel request in current status");
             }
 
             if (request.Status != UserRequestStatus.Pending)
