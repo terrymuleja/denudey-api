@@ -10,7 +10,8 @@ namespace Denudey.Application.Interfaces
     public interface IEpisodeStatsService
     {
         Task<Dictionary<int, EpisodeStatsDto>> GetStatsForEpisodesAsync(List<int> episodeIds, Guid? userId);
-        
+        Task<string> GetRequestorAvatarUrl(Guid userId);
+
     }
 
 }

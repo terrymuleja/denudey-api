@@ -14,7 +14,16 @@ namespace Denudey.Application.Services
 {
     public class ProductStatsService(StatsDbContext statsDb, ILogger<ProductStatsService> logger) : IProductStatsService
     {
-        
+        public async Task<string> GetCreatorAvatarUrl(Guid userId)
+        {
+            var user = await statsDb.CreatorSocials.FindAsync(userId);
+            if (user != null)
+            {
+                return user.ProfileImageUrl ?? "";
+            }
+
+            return "";
+        }
 
         public async Task<Dictionary<Guid, ProductStatsDto>> GetStatsForProductsAsync(List<Guid> productIds, Guid? userId)
         {

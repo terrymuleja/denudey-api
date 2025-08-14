@@ -262,7 +262,7 @@ namespace Denudey.Application.Services
                         CreatedAt = e.CreatedAt,
 
                         CreatedBy = e.CreatedBy,
-                        CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
+                        CreatorAvatarUrl = stats.GetCreatorAvatarUrl(e.CreatedBy).Result,
                         Likes = stat?.Likes ?? 0,
                         Views = stat?.Views ?? 0,
                         HasUserLiked = stat?.UserHasLiked ?? false

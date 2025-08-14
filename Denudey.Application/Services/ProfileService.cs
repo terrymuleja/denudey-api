@@ -96,12 +96,27 @@ namespace Denudey.Application.Services
         {
             var db = _shardRouter.GetDbForUser(userId);
             var user = await GetUserWithRolesAsync(db, userId, cancellationToken);
-            if (user == null || string.IsNullOrEmpty(user.ProfileImageUrl))
+
+            if (user == null)
+            {
+                _logger.LogWarning("User {UserId} not found for profile image deletion", userId);
                 return false;
+            }
+
+            // If user has no profile image, consider deletion successful
+            if (string.IsNullOrEmpty(user.ProfileImageUrl))
+            {
+                _logger.LogInformation("User {UserId} has no profile image to delete, operation considered successful", userId);
+                return true;
+            }
+
+            _logger.LogInformation("Attempting to delete profile image for user {UserId}: {ImageUrl}", userId, user.ProfileImageUrl);
 
             var deleted = await _cloudinaryService.DeleteImageFromCloudinary(user.ProfileImageUrl);
+
             if (deleted)
             {
+                var oldImageUrl = user.ProfileImageUrl;
                 user.ProfileImageUrl = null;
                 await db.SaveChangesAsync(cancellationToken);
 
@@ -109,13 +124,15 @@ namespace Denudey.Application.Services
                 var role = user.UserRoles.FirstOrDefault()?.Role.Name ?? "requester";
                 await _socialService.UpdateUserSocialProfileAsync(user, role, cancellationToken);
 
-                _logger.LogInformation("Deleted profile image for user {UserId} and synced to statsDb", userId);
+                _logger.LogInformation("Successfully deleted profile image {ImageUrl} for user {UserId} and synced to statsDb", oldImageUrl, userId);
                 return true;
             }
-
-            return false;
+            else
+            {
+                _logger.LogWarning("Failed to delete profile image from Cloudinary for user {UserId}: {ImageUrl}", userId, user.ProfileImageUrl);
+                return false;
+            }
         }
-
         public async Task UpdatePrivacyAsync(Guid userId, bool isPrivate, CancellationToken cancellationToken = default)
         {
             var db = _shardRouter.GetDbForUser(userId);

@@ -12,7 +12,18 @@ namespace Denudey.Application.Services
 {
     public class EpisodeStatsService(StatsDbContext statsDb) : IEpisodeStatsService
     {
-        
+
+        public async Task<string> GetRequestorAvatarUrl(Guid userId)
+        {
+            var user = await statsDb.RequesterSocials.FirstOrDefaultAsync(c => c.RequesterId == userId );
+            if (user != null)
+            {
+                return user.ProfileImageUrl ?? "";
+            }
+
+            return "";
+        }
+
 
         public async Task<Dictionary<int, EpisodeStatsDto>> GetStatsForEpisodesAsync(List<int> episodeIds, Guid? userId)
         {

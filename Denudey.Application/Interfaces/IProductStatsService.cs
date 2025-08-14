@@ -10,5 +10,7 @@ namespace Denudey.Application.Interfaces
     public interface IProductStatsService
     {
         Task<Dictionary<Guid, ProductStatsDto>> GetStatsForProductsAsync(List<Guid> productIds, Guid? userId);
+
+        Task<string> GetCreatorAvatarUrl(Guid userId);
     }
 }

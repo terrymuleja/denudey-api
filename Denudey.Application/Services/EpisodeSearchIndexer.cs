@@ -154,7 +154,8 @@ namespace Denudey.Application.Services
                         CreatedAt = e.CreatedAt,
                         CreatorId = e.CreatorId,
                         CreatedBy = e.CreatorUsername ?? "Unknown",
-                        CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
+                        //CreatorAvatarUrl = e.CreatorAvatarUrl ?? "",
+                        CreatorAvatarUrl = stats.GetRequestorAvatarUrl(e.CreatorId).Result,
                         Likes = stat?.Likes ?? 0,
                         Views = stat?.Views ?? 0,
                         HasUserLiked = stat?.UserHasLiked ?? false

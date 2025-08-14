@@ -160,21 +160,28 @@ namespace Denudey.Api.Controllers
             if (string.IsNullOrEmpty(id))
                 return Unauthorized();
 
-            var user = await db.Users.FindAsync(Guid.Parse(id));
-            if (user == null || string.IsNullOrEmpty(user.ProfileImageUrl))
-                return NotFound();
-
             var userId = Guid.Parse(id);
-            var deleted = await profileService.DeleteProfileImageAsync(userId);
-       
-            if (deleted)
+
+            // Check if user exists first
+            var user = await db.Users.FindAsync(userId);
+            if (user == null)
+                return NotFound("User not found");
+
+            // If user has no profile image, consider deletion successful
+            if (string.IsNullOrEmpty(user.ProfileImageUrl))
             {
-                return Ok();
+                return Ok(new { message = "No profile image to delete", success = true });
             }
 
-            return BadRequest("Failed to delete image.");
-        }
+            var deleted = await profileService.DeleteProfileImageAsync(userId);
 
+            if (deleted)
+            {
+                return Ok(new { message = "Profile image deleted successfully", success = true });
+            }
+
+            return BadRequest(new { message = "Failed to delete image", success = false });
+        }
 
         [HttpPut("profile/privacy")]
         public async Task<IActionResult> UpdatePrivacy([FromBody] UpdatePrivacyDto dto, CancellationToken cancellationToken)
