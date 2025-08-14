@@ -86,7 +86,7 @@ namespace Denudey.Api.Controllers
                     RequestorId = request.RequestorId,
                     Text = request.Text,
                     Status = request.Status.ToString().ToLower(),
-                    DeadLine = MapDeadlineToString(request.DeadLine),
+                    Deadline = MapDeadlineToString(request.DeadLine),
                     PriceAmount = request.PriceAmount,
                     ExtraAmount = request.ExtraAmount,
                     TotalAmount = request.TotalAmount,

@@ -22,7 +22,7 @@ namespace Denudey.Api.Domain.DTOs.Requests
         public decimal TotalAmount { get; set; }
         public decimal Tax { get; set; }
         
-        public string DeadLine { get; set; } = string.Empty;
+        public string Deadline { get; set; } = string.Empty;
         public DateTime? ExpectedDeliveredDate { get; set; }
         public DateTime? DeliveredDate { get; set; }
         public DateTime CreatedAt { get; set; }
