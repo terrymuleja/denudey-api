@@ -21,6 +21,7 @@ using Elastic.Transport;
 using System.Collections;
 using Denudey.Api.Application.Services;
 using Denudey.Api.Application.Interfaces;
+using Denudey.Api.Exceptions.DenudeyAPI.Middleware;
 
 namespace denudey_api
 {
@@ -309,6 +310,7 @@ namespace denudey_api
                 app.UseSwaggerUI();
             }
 
+            app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
