@@ -19,102 +19,27 @@ namespace Denudey.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class UserRequestController : ControllerBase
+    public class UserRequestController : DenudeyControlerBase
     {
         private readonly IUserRequestService _userRequestService;
-        private readonly ILogger<UserRequestController> _logger;
-        private readonly ISocialService _socialService;
-
+        
+       
         public UserRequestController(
             IUserRequestService userRequestService,
             ISocialService socialService,
-            ILogger<UserRequestController> logger)
+            ILogger<UserRequestController> logger):base(socialService, logger)
         {
             _userRequestService = userRequestService;
-            _socialService = socialService;
-            _logger = logger;
+            
         }
 
         #region Helper Methods
 
-        private Guid GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdClaim, out var userId))
-            {
-                throw new UnauthorizedAccessException("Invalid user ID in token");
-            }
-            return userId;
-        }
+        
 
-        private async Task<UserRequestResponseDto> MapToDtoAsync(UserRequest request)
-        {
-            
-            var u = await _socialService.GetUserSocialProfileAsync(request.CreatorId, "model");
-            if (u != null)
-            {
-                var userSocial = (CreatorSocial)u;
-                return new UserRequestResponseDto
-                {
-                    Id = request.Id,
-                    ProductId = request.ProductId,
-                    ProductName = request.ProductName,
-                    BodyPart = request.BodyPart,
-                    CreatorId = request.CreatorId,
-                    CreatorUsername = userSocial?.Username ?? "",
-                    MainPhotoUrl = request.MainPhotoUrl,
-                    RequestorId = request.RequestorId,
-                    Text = request.Text,
-                    Status = request.Status.ToString().ToLower(),
-                    DeadLine = MapDeadlineToString(request.DeadLine),
-                    PriceAmount = request.PriceAmount,
-                    ExtraAmount = request.ExtraAmount,
-                    TotalAmount = request.TotalAmount,
-                    Tax = request.Tax,
-                    DeliveredImageUrl = request.DeliveredImageUrl,
-                    ExpectedDeliveredDate = request.ExpectedDeliveredDate,
-                    DeliveredDate = request.DeliveredDate,
-                    CreatedAt = request.CreatedAt,
-                    ModifiedAt = request.ModifiedAt,
-                    ValidationStatus = GetValidationStatus(request),
-                    AcceptedAt = request.AcceptedAt,
-
-                };
-
-            }
-            throw new Exception("User not found");
-        }
-
-        private string GetValidationStatus(UserRequest request)
-        {
-            if (request.BodyPartValidated == null && request.TextValidated == null && request.ManualValidated == null)
-                return "pending";
-
-            if (request.ManualValidated == true)
-                return "approved";
-
-            if (request.ManualValidated == false)
-                return "rejected";
-
-            if (request.BodyPartValidated == true && request.TextValidated == true)
-                return "approved";
-
-            if (request.BodyPartValidated == false || request.TextValidated == false)
-                return "rejected";
-
-            return "pending";
-        }
-
-        private string MapDeadlineToString(DeadLine deadline)
-        {
-            return deadline switch
-            {
-                DeadLine.ThreeDays => "3d",
-                DeadLine.Express48h => "48h",
-                DeadLine.Express24h => "24h",
-                _ => "3d"
-            };
-        }
+        
+        
+       
 
         private DeadLine MapStringToDeadline(string deadline)
         {
@@ -142,7 +67,7 @@ namespace Denudey.Api.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
 
                 // Validate the request DTO
                 if (model.ProductId == Guid.Empty)
@@ -186,7 +111,7 @@ namespace Denudey.Api.Controllers
             }
             catch (InsufficientFundsException ex)
             {
-                _logger.LogWarning("Insufficient funds for user {UserId}: {Message}", GetCurrentUserId(), ex.Message);
+                _logger.LogWarning("Insufficient funds for user {UserId}: {Message}", GetUserId(), ex.Message);
                 return BadRequest(new { error = ex.Message });
             }
             catch (DenudeyNotFoundException ex)
@@ -196,7 +121,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating request for user {UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "Error creating request for user {UserId}", GetUserId());
                 return StatusCode(500, new { error = "An error occurred while creating the request" });
             }
         }
@@ -218,7 +143,7 @@ namespace Denudey.Api.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 const int pageSize = 20;
 
                 // Get all requests for the user
@@ -265,7 +190,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting requests for user {UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "Error getting requests for user {UserId}", GetUserId());
                 return StatusCode(500, new { error = "An error occurred while retrieving requests" });
             }
         }
@@ -283,7 +208,7 @@ namespace Denudey.Api.Controllers
         {
             try
             {
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 const int pageSize = 20;
 
                 // Get all requests received by the user
@@ -329,7 +254,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting received requests for user {UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "Error getting received requests for user {UserId}", GetUserId());
                 return StatusCode(500, new { error = "An error occurred while retrieving received requests" });
             }
         }
@@ -349,7 +274,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { error = "Invalid request ID format" });
                 }
 
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 var request = await _userRequestService.GetRequestByIdAsync(requestId);
 
                 // Ensure user can only access their own requests (as requester or creator)
@@ -366,7 +291,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting request {RequestId} for user {UserId}", id, GetCurrentUserId());
+                _logger.LogError(ex, "Error getting request {RequestId} for user {UserId}", id, GetUserId());
                 return StatusCode(500, new { error = "An error occurred while retrieving the request" });
             }
         }
@@ -393,7 +318,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { error = "Invalid request ID format" });
                 }
 
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 var request = await _userRequestService.GetRequestByIdAsync(requestId);
 
                 // Only creator can update status
@@ -449,7 +374,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating request status {RequestId} for user {UserId}", id, GetCurrentUserId());
+                _logger.LogError(ex, "Error updating request status {RequestId} for user {UserId}", id, GetUserId());
                 return StatusCode(500, new { error = "An error occurred while updating the request status" });
             }
         }
@@ -473,7 +398,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { error = "Invalid request ID format" });
                 }
 
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 var updatedRequest = await _userRequestService.CancelRequestAsync(requestId, currentUserId);
 
                 var response = new UpdateRequestResponse
@@ -500,7 +425,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error cancelling request {RequestId} for user {UserId}", id, GetCurrentUserId());
+                _logger.LogError(ex, "Error cancelling request {RequestId} for user {UserId}", id, GetUserId());
                 return StatusCode(500, new { error = "An error occurred while cancelling the request" });
             }
         }
@@ -532,7 +457,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { error = "Image URL is required" });
                 }
 
-                var currentUserId = GetCurrentUserId();
+                var currentUserId = GetUserId();
                 var request = await _userRequestService.GetRequestByIdAsync(requestId);
 
                 // Only creator can deliver
@@ -563,7 +488,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error delivering request {RequestId} for user {UserId}", id, GetCurrentUserId());
+                _logger.LogError(ex, "Error delivering request {RequestId} for user {UserId}", id, GetUserId());
                 return StatusCode(500, new { error = "An error occurred while delivering the request" });
             }
         }

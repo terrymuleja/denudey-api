@@ -10,23 +10,20 @@ using Denudey.Api.Domain.Entities;
 using Denudey.Api.Domain.Exceptions;
 using Denudey.Api.Domain.Models;
 using Denudey.Api.Domain.DTOs.Gems;
+using Denudey.Application.Interfaces;
 
 namespace Denudey.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class WalletController : DenudeyControlerBase
+    public class WalletController(
+        IWalletService walletService,
+        ISocialService socialService,
+        ILogger<WalletController> logger) : DenudeyControlerBase(socialService, logger)
     {
-        private readonly IWalletService _walletService;
-        private readonly ILogger<WalletController> _logger;
-
-        public WalletController(IWalletService walletService, ILogger<WalletController> logger)
-        {
-            _walletService = walletService;
-            _logger = logger;
-        }
-
+        
+        
         #region Wallet Management
 
         /// <summary>
@@ -44,12 +41,12 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Valid UserId is required" });
                 }
 
-                var wallet = await _walletService.CreateWalletAsync(userId);
+                var wallet = await walletService.CreateWalletAsync(userId);
                 return Ok(wallet);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating wallet for user {UserId}", userId);
+                logger.LogError(ex, "Error creating wallet for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while creating the wallet" });
             }
         }
@@ -63,12 +60,12 @@ namespace Denudey.Api.Controllers
             var userId = GetUserId();
             try
             {
-                var wallet = await _walletService.GetWalletAsync(userId);
+                var wallet = await walletService.GetWalletAsync(userId);
                 return Ok(wallet);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving wallet for user {UserId}", userId);
+                logger.LogError(ex, "Error retrieving wallet for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while retrieving the wallet" });
             }
         }
@@ -86,12 +83,12 @@ namespace Denudey.Api.Controllers
             var userId = GetUserId();
             try
             {
-                var balance = await _walletService.GetGemBalanceAsync(userId);
+                var balance = await walletService.GetGemBalanceAsync(userId);
                 return Ok(new { balance });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving gem balance for user {UserId}", userId);
+                logger.LogError(ex, "Error retrieving gem balance for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while retrieving gem balance" });
             }
         }
@@ -105,12 +102,12 @@ namespace Denudey.Api.Controllers
             var userId = GetUserId();
             try
             {
-                var hasSufficient = await _walletService.HasSufficientGemsAsync(userId, amount);
+                var hasSufficient = await walletService.HasSufficientGemsAsync(userId, amount);
                 return Ok(new { hasSufficient });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking sufficient gems for user {UserId}", userId);
+                logger.LogError(ex, "Error checking sufficient gems for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while checking gem balance" });
             }
         }
@@ -129,7 +126,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
                 var descripton = "Manual add";
-                var success = await _walletService.AddGemsAsync(userId, request.Amount, descripton);
+                var success = await walletService.AddGemsAsync(userId, request.Amount, descripton);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -138,7 +135,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding gems for user {UserId}", userId);
+                logger.LogError(ex, "Error adding gems for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while adding gems" });
             }
         }
@@ -157,7 +154,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
 
-                var success = await _walletService.DeductGemsAsync(userId, request.Amount);
+                var success = await walletService.DeductGemsAsync(userId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -170,7 +167,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deducting gems for user {UserId}", userId);
+                logger.LogError(ex, "Error deducting gems for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while deducting gems" });
             }
         }
@@ -194,7 +191,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Cannot transfer to the same user" });
                 }
 
-                var success = await _walletService.TransferGemsAsync(userId, request.ToUserId, request.Amount);
+                var success = await walletService.TransferGemsAsync(userId, request.ToUserId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -207,7 +204,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error transferring gems from {FromUserId} to {ToUserId}",
+                logger.LogError(ex, "Error transferring gems from {FromUserId} to {ToUserId}",
                     userId, request.ToUserId);
                 return StatusCode(500, new { message = "An error occurred while transferring gems" });
             }
@@ -226,12 +223,12 @@ namespace Denudey.Api.Controllers
             var userId = GetUserId();
             try
             {
-                var balance = await _walletService.GetUsdBalanceAsync(userId);
+                var balance = await walletService.GetUsdBalanceAsync(userId);
                 return Ok(new { balance });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving USD balance for user {UserId}", userId);
+                logger.LogError(ex, "Error retrieving USD balance for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while retrieving USD balance" });
             }
         }
@@ -250,7 +247,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
 
-                var success = await _walletService.AddUsdAsync(userId, request.Amount);
+                var success = await walletService.AddUsdAsync(userId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -259,7 +256,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding USD for user {UserId}", userId);
+                logger.LogError(ex, "Error adding USD for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while adding USD" });
             }
         }
@@ -278,7 +275,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Amount must be positive" });
                 }
 
-                var success = await _walletService.DeductUsdAsync(userId, request.Amount);
+                var success = await walletService.DeductUsdAsync(userId, request.Amount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -291,7 +288,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deducting USD for user {UserId}", userId);
+                logger.LogError(ex, "Error deducting USD for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while deducting USD" });
             }
         }
@@ -314,7 +311,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "Gem amount must be positive" });
                 }
 
-                var success = await _walletService.ConvertGemsToUsdAsync(userId, request.GemAmount);
+                var success = await walletService.ConvertGemsToUsdAsync(userId, request.GemAmount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -327,7 +324,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting gems to USD for user {UserId}", userId);
+                logger.LogError(ex, "Error converting gems to USD for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while converting gems to USD" });
             }
         }
@@ -346,7 +343,7 @@ namespace Denudey.Api.Controllers
                     return BadRequest(new { message = "USD amount must be positive" });
                 }
 
-                var success = await _walletService.ConvertUsdToGemsAsync(userId, request.UsdAmount);
+                var success = await walletService.ConvertUsdToGemsAsync(userId, request.UsdAmount);
                 return Ok(new { success });
             }
             catch (ArgumentException ex)
@@ -359,7 +356,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error converting USD to gems for user {UserId}", userId);
+                logger.LogError(ex, "Error converting USD to gems for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while converting USD to gems" });
             }
         }
@@ -372,12 +369,12 @@ namespace Denudey.Api.Controllers
         {
             try
             {
-                var rate = await _walletService.GetGemsToUsdRateAsync();
+                var rate = await walletService.GetGemsToUsdRateAsync();
                 return Ok(new { rate });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving gem to USD rate");
+                logger.LogError(ex, "Error retrieving gem to USD rate");
                 return StatusCode(500, new { message = "An error occurred while retrieving exchange rate" });
             }
         }
@@ -395,12 +392,12 @@ namespace Denudey.Api.Controllers
             var userId = GetUserId();
             try
             {
-                var transactions = await _walletService.GetTransactionHistoryAsync(userId);
+                var transactions = await walletService.GetTransactionHistoryAsync(userId);
                 return Ok(transactions);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving transaction history for user {UserId}", userId);
+                logger.LogError(ex, "Error retrieving transaction history for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while retrieving transaction history" });
             }
         }
@@ -436,12 +433,12 @@ namespace Denudey.Api.Controllers
                 // In a real app, you would process payment here
                 // For now, we'll just add the gems directly
                 var description = $"Purchased {pack.name} - ${pack.price:F2}";
-                var success = await _walletService.AddGemsAsync(userId, pack.totalGems, description);
+                var success = await walletService.AddGemsAsync(userId, pack.totalGems, description);
 
                 if (success)
                 {
                     // Create a transaction record for the purchase
-                    await _walletService.CreateTransactionAsync(new WalletTransactionDto
+                    await walletService.CreateTransactionAsync(new WalletTransactionDto
                     {
                         UserId = userId,
                         Type = WalletTransactionType.Credit,
@@ -455,7 +452,7 @@ namespace Denudey.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error purchasing credit pack for user {UserId}", userId);
+                logger.LogError(ex, "Error purchasing credit pack for user {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while purchasing credit pack" });
             }
         }

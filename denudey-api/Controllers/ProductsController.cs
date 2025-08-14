@@ -17,7 +17,8 @@ namespace Denudey.Api.Controllers
         ProductQueryService productQueryService,
         IProductsService productsService,
         IProductSearchIndexer productSearchIndexer,
-        ILogger<ProductsController> logger) : DenudeyControlerBase
+        ISocialService socialService,
+        ILogger<ProductsController> logger) : DenudeyControlerBase(socialService, logger)
     {
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateProductDto dto)

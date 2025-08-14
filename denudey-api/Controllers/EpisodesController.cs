@@ -22,7 +22,8 @@ namespace Denudey.Api.Controllers;
 public class EpisodesController(EpisodeService episodesService,
     EpisodeQueryService episodeQueryService,
     IEpisodeSearchIndexer searchService,
-    ILogger<EpisodesController> logger) : DenudeyControlerBase
+    ISocialService socialService,
+    ILogger<EpisodesController> logger) : DenudeyControlerBase(socialService, logger)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEpisodeDto dto)
