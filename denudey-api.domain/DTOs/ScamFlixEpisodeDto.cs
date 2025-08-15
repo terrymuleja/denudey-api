@@ -11,7 +11,7 @@
         public string? CreatedBy { get; set; }
         public Guid? CreatorId { get; set; }
 
-        public string CreatorAvatarUrl { get; set; }
+        public string CreatorAvatarUrl { get; set; } = string.Empty;
 
         public int Views { get; set; }
         public int Likes { get; set; }

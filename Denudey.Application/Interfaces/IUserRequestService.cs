@@ -17,7 +17,7 @@ namespace Denudey.Application.Interfaces
         Task<UserRequest> CreateRequestAsync(CreateUserRequestDto request, Guid currentId);
 
         // READ
-        Task<UserRequest> GetRequestByIdAsync(Guid requestId);
+        
         Task<UserRequest?> GetRequestByIdOrNullAsync(Guid requestId);
         Task<IEnumerable<UserRequest>> GetAllRequestsAsync();
         Task<IEnumerable<UserRequest>> GetRequestsForCreatorAsync(Guid creatorId);
@@ -30,20 +30,17 @@ namespace Denudey.Application.Interfaces
 
         // UPDATE
         Task<UserRequest> UpdateRequestAsync(Guid requestId, UpdateUserRequestDto updateDto);
-        Task<UserRequest> AcceptRequestAsync(Guid requestId, Guid creatorId);
-        Task<UserRequest> DeliverRequestAsync(Guid requestId, Guid creatorId, string imageUrl);
-        Task<UserRequest> ValidateRequestAsync(Guid requestId, RequestValidationResult validation);
-        Task<UserRequest> UpdateStatusAsync(Guid requestId, UserRequestStatus status);
+        
+        
+        
         Task<UserRequest> CancelRequestAsync(Guid requestId, Guid userId);
         Task<UserRequest> ExpireRequestAsync(Guid requestId);
 
-        // BULK OPERATIONS
-        Task<int> BulkUpdateExpiredRequestsAsync();
-        Task<IEnumerable<UserRequest>> BulkValidateRequestsAsync(IEnumerable<ValidationRequestDto> validations);
-
+       
+        
         // QUERY HELPERS
-        Task<bool> ExistsAsync(Guid requestId);
-        Task<int> GetTotalCountAsync();
+       
+       
         Task<int> GetCountByStatusAsync(UserRequestStatus status);
         Task<decimal> GetTotalRevenueAsync();
         Task<decimal> GetRevenueByCreatorAsync(Guid creatorId);

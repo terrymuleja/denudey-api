@@ -8,6 +8,7 @@ namespace Denudey.Api.Domain.DTOs.Requests
 {
     public class DeliverRequestDto
     {
+        public string DeliveryNote { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
     }
 }

@@ -153,6 +153,8 @@ namespace denudey_api
             builder.Services.AddScoped<IUserRequestService, UserRequestService>();
             builder.Services.AddScoped<IOrdersService, OrdersService>();
             builder.Services.AddScoped<IWalletService, WalletService>();
+            builder.Services.AddScoped<IRequestManagementService, RequestManagementService<RequestManagementService<object>>>();
+            
 
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 

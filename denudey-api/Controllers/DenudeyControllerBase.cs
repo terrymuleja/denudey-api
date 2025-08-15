@@ -20,6 +20,7 @@ namespace Denudey.Api.Controllers
             _socialService = socialService;
             _logger = logger;
         }
+
         protected Guid GetUserId()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -71,9 +72,11 @@ namespace Denudey.Api.Controllers
         {
 
             var u = await _socialService.GetUserSocialProfileAsync(request.CreatorId, "model");
-            if (u != null)
+            var req = await _socialService.GetUserSocialProfileAsync(request.RequestorId, "requester");
+            if (u != null && req != null)
             {
                 var userSocial = (CreatorSocial)u;
+                var requesterSocial = (RequesterSocial)req;
                 return new UserRequestResponseDto
                 {
                     Id = request.Id,
@@ -84,6 +87,7 @@ namespace Denudey.Api.Controllers
                     CreatorUsername = userSocial?.Username ?? "",
                     MainPhotoUrl = request.MainPhotoUrl,
                     RequestorId = request.RequestorId,
+                    RequesterUsername = requesterSocial?.Username?? "",
                     Text = request.Text,
                     Status = request.Status.ToString().ToLower(),
                     Deadline = MapDeadlineToString(request.DeadLine),
