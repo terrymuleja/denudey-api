@@ -230,15 +230,6 @@ namespace Denudey.Api.Application.Services
             _logger.LogInformation("Updated user request {RequestId}", requestId);
             return request;
         }
-
-        
-
-        
-
-       
-
-        
-
         public async Task<UserRequest> CancelRequestAsync(Guid requestId, Guid userId)
         {
             var request = await GetRequestByIdAsync(requestId);
@@ -268,7 +259,31 @@ namespace Denudey.Api.Application.Services
             return request;
         }
 
-       
+        public async Task UpdateValidationResultAsync(UpdateValidationRequest request)
+        {
+            var entity = await GetRequestByIdAsync(request.RequestId);
+
+            if (entity == null)
+                throw new EntityNotFoundException($"Request {request.RequestId} not found");
+
+            // Update validation fields
+            entity.ValidationStatus = request.Status;
+            entity.ValidationConfidence = request.ConfidenceScore;
+            entity.ValidatedAt = request.ValidatedAt;
+
+            if (request.RequiresHumanReview)
+            {
+                entity.RequiresManualReview = true;
+                // Maybe add to a review queue or send notification
+            }
+
+            if (!string.IsNullOrEmpty(request.ErrorMessage))
+            {
+                entity.ValidationError = request.ErrorMessage;
+            }
+
+            await _context.SaveChangesAsync();
+        }
 
         #endregion
 

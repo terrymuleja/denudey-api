@@ -78,5 +78,16 @@ namespace Denudey.Api.Domain.Entities
         public virtual CreatorSocial Creator { get; set; }
 
         public string MainPhotoUrl { get; set; } = string.Empty;
+
+        public string ValidationError { get; set; } = string.Empty;
+
+        public bool RequiresManualReview { get; set; }
+
+        public string ValidationStatus { get; set; } = string.Empty;
+
+        public double ValidationConfidence { get; set; }
+
+        public DateTime? ValidatedAt { get; set; }
+
     }
 }

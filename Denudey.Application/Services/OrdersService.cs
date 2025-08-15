@@ -16,7 +16,7 @@ using Denudey.Api.Domain.DTOs.Requests;
 
 namespace Denudey.Application.Services
 {
-    public class OrdersService(StatsDbContext context, IWalletService walletService, ILogger<OrdersService> logger):
+    public class OrdersService(StatsDbContext context, IWalletService walletService, IDeliveryValidationService validationService, ILogger<OrdersService> logger):
         RequestManagementService<OrdersService>(context, walletService, logger), IOrdersService
     {
 
@@ -91,10 +91,16 @@ namespace Denudey.Application.Services
                 request.ModifiedAt = DateTime.UtcNow;
 
                 // Move gems to Creator 
-                var description = $"Delivery: order '{request.BodyPart}-{request.Text}' to '{request.Requester.Username}'";
-                await _walletService.AddGemsAsync(request.CreatorId, request.TotalAmount, description);
+                // var description = $"Delivery: order '{request.BodyPart}-{request.Text}' to '{request.Requester.Username}'";
+                // await _walletService.AddGemsAsync(request.CreatorId, request.TotalAmount, description);
 
                 await _context.SaveChangesAsync();
+
+                // 2. Trigger AI validation (NEW)
+                await validationService.TriggerValidationAsync(
+                    requestId,
+                    requestDto.ImageUrl,
+                    request.Text);
 
                 _logger.LogInformation("Request {RequestId} delivered with image {ImageUrl}",
                     requestId, requestDto.ImageUrl);

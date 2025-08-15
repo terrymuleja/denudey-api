@@ -44,5 +44,7 @@ namespace Denudey.Application.Interfaces
         Task<int> GetCountByStatusAsync(UserRequestStatus status);
         Task<decimal> GetTotalRevenueAsync();
         Task<decimal> GetRevenueByCreatorAsync(Guid creatorId);
+
+        Task UpdateValidationResultAsync(UpdateValidationRequest request);
     }
 }

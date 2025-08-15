@@ -22,6 +22,8 @@ using System.Collections;
 using Denudey.Api.Application.Services;
 using Denudey.Api.Application.Interfaces;
 using Denudey.Api.Exceptions.DenudeyAPI.Middleware;
+using MassTransit;
+using DotNetEnv;
 
 namespace denudey_api
 {
@@ -29,6 +31,12 @@ namespace denudey_api
     {
         public static async Task Main(string[] args)
         {
+            // Load .env file in development
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                Env.Load();
+            }
+
             Console.WriteLine("=== CONSOLE TEST: Program.cs is running ===");
             Console.WriteLine($"Time: {DateTime.UtcNow}");
 
@@ -157,6 +165,7 @@ namespace denudey_api
             
 
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
+            builder.Services.AddScoped<IDeliveryValidationService, DeliveryValidationService>();
 
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();            
             builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
@@ -164,6 +173,41 @@ namespace denudey_api
             // ✅ 8. HOSTED SERVICES (background services)
             builder.Services.AddHostedService<TokenCleanupService>();
 
+            builder.Services.AddMassTransit(x =>
+            {
+                // Add consumer for receiving validation results
+                x.AddConsumer<ValidationCompletedConsumer>();
+
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    // Get CloudAMQP URL from environment variable
+                    
+                    var rabbitMqUrl = builder.Configuration.GetConnectionString("RabbitMQ")
+                                    ?? Environment.GetEnvironmentVariable("CLOUDAMQP_URL");
+
+                    if (string.IsNullOrEmpty(rabbitMqUrl))
+                    {
+                        throw new InvalidOperationException("CloudAMQP URL not found. Set CLOUDAMQP_URL environment variable.");
+                    }
+
+                    // Connect to CloudAMQP
+                    cfg.Host(new Uri(rabbitMqUrl));
+
+                    // Configure endpoint to receive validation results
+                    cfg.ReceiveEndpoint("denudey-api-validation-results", e =>
+                    {
+                        e.ConfigureConsumer<ValidationCompletedConsumer>(context);
+
+                        // Retry configuration
+                        e.UseMessageRetry(r => r.Intervals(1000, 2000, 5000));
+
+                        // Limit concurrent messages (CloudAMQP free tier)
+                        e.ConcurrentMessageLimit = 2;
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            });
             Console.WriteLine("=== Configuring Authentication ===");
 
             // ✅ 9. AUTHENTICATION & AUTHORIZATION
