@@ -1,6 +1,0 @@
-@DeliveryValidationService.Api_HostAddress = http://localhost:5095
-
-GET {{DeliveryValidationService.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
