@@ -1,4 +1,4 @@
-# Simplified Dockerfile for Railway deployment with submodules
+# Dockerfile for Railway deployment with submodules
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 8080
@@ -6,8 +6,17 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy everything (Railway automatically includes submodules)
+# Install git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Copy everything
 COPY . .
+
+# Initialize submodules if they exist
+RUN if [ -f .gitmodules ]; then \
+      git config --global --add safe.directory /src && \
+      git submodule update --init --recursive; \
+    fi
 
 # List contents to debug
 RUN ls -la
