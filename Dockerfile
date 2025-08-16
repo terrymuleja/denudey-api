@@ -26,7 +26,6 @@ RUN echo "=== Environment Check ===" && \
     echo "GITHUB_TOKEN: [REDACTED]" && \
     echo "=== Listing root directory ===" && ls -la
 
-# Check the actual project structure
 RUN echo "=== Listing denudey-api directory ===" && ls -la denudey-api/
 RUN echo "=== Checking for csproj files ===" && find . -name "*.csproj" | head -10
 
@@ -46,8 +45,8 @@ RUN if [ ! -z "$GITHUB_USERNAME" ] && [ ! -z "$GITHUB_TOKEN" ]; then \
 # Clear NuGet cache to avoid conflicts
 RUN dotnet nuget locals all --clear
 
-# Find and restore the correct project file
-RUN echo "=== Finding project files ===" && \
+# Restore with enhanced error handling
+RUN echo "=== Starting restore ===" && \
     echo "=== Current working directory: $(pwd) ===" && \
     echo "=== Checking if project file exists ===" && \
     ls -la "denudey-api/denudey-api.csproj" && \
@@ -104,10 +103,4 @@ RUN addgroup --system --gid 1001 dotnetgroup && \
     adduser --system --uid 1001 --ingroup dotnetgroup dotnetuser
 USER dotnetuser
 
-# Dynamic entrypoint - find the main DLL
-RUN MAIN_DLL=$(find . -name "*.dll" | grep -E "(denudey-api|Denudey)" | head -1 | sed 's|^./||') && \
-    echo "Using DLL: $MAIN_DLL" && \
-    echo "dotnet $MAIN_DLL" > /app/start.sh && \
-    chmod +x /app/start.sh
-
-ENTRYPOINT ["/bin/sh", "/app/start.sh"]
+ENTRYPOINT ["dotnet", "denudey-api.dll"]
