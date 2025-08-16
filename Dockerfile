@@ -9,6 +9,10 @@ WORKDIR /src
 # Copy everything (Railway automatically includes submodules)
 COPY . .
 
+# List contents to debug
+RUN ls -la
+RUN ls -la delivery-validation-service/ || echo "delivery-validation-service not found"
+
 # Restore and build
 RUN dotnet restore "denudey-api/denudey-api.csproj"
 RUN dotnet build "denudey-api/denudey-api.csproj" -c Release -o /app/build
