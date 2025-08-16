@@ -134,12 +134,22 @@ namespace Denudey.Api.Application.Services
 
         public async Task<IEnumerable<UserRequest>> GetRequestsForRequesterAsync(Guid requestorId)
         {
-            var data = await _context.UserRequests
+            List<UserRequest> requests = new List<UserRequest>();
+            try
+            {
+                var data = await _context.UserRequests
                 .Include(ur => ur.Creator)
                 .Where(ur => ur.RequestorId == requestorId)
                 .OrderByDescending(ur => ur.CreatedAt)
                 .ToListAsync();
-            return data;
+                return data;
+            }
+            catch (Exception exc)
+            {
+
+                throw exc;
+            }
+            return requests;
         }
 
         public async Task<IEnumerable<UserRequest>> GetRequestsByStatusAsync(UserRequestStatus status)
@@ -164,7 +174,10 @@ namespace Denudey.Api.Application.Services
 
         public async Task<IEnumerable<UserRequest>> GetPendingValidationRequestsAsync()
         {
-            return await _context.UserRequests
+            List<UserRequest> requests = new List<UserRequest>(); 
+            try
+            {
+                requests = await _context.UserRequests
                 .Include(ur => ur.Requester)
                 .Include(ur => ur.Creator)
                 .Where(ur => ur.Status == UserRequestStatus.Delivered &&
@@ -173,6 +186,12 @@ namespace Denudey.Api.Application.Services
                            ur.ManualValidated == null)
                 .OrderBy(ur => ur.DeliveredDate)
                 .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return requests;
         }
 
         
