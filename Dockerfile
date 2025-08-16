@@ -26,18 +26,19 @@ RUN echo "=== Environment Check ===" && \
     echo "GITHUB_TOKEN: [REDACTED]" && \
     echo "=== Listing root directory ===" && ls -la
 
+# Check the actual project structure
 RUN echo "=== Listing denudey-api directory ===" && ls -la denudey-api/
 RUN echo "=== Checking for csproj files ===" && find . -name "*.csproj" | head -10
 
 # Configure NuGet authentication if GitHub credentials are provided
 RUN if [ ! -z "$GITHUB_USERNAME" ] && [ ! -z "$GITHUB_TOKEN" ]; then \
         echo "=== Configuring GitHub NuGet source ===" && \
-        dotnet nuget add source https://nuget.pkg.github.com/$GITHUB_USERNAME/index.json \
-            --name github \
-            --username $GITHUB_USERNAME \
-            --password $GITHUB_TOKEN \
+        dotnet nuget update source github \
+            --username "$GITHUB_USERNAME" \
+            --password "$GITHUB_TOKEN" \
             --store-password-in-clear-text && \
-        echo "GitHub NuGet source configured successfully"; \
+        echo "GitHub NuGet source configured successfully" && \
+        dotnet nuget list source; \
     else \
         echo "=== No GitHub credentials provided, skipping NuGet source configuration ==="; \
     fi
@@ -45,12 +46,16 @@ RUN if [ ! -z "$GITHUB_USERNAME" ] && [ ! -z "$GITHUB_TOKEN" ]; then \
 # Clear NuGet cache to avoid conflicts
 RUN dotnet nuget locals all --clear
 
-# Restore with enhanced error handling
-RUN echo "=== Starting restore ===" && \
+# Find and restore the correct project file
+RUN echo "=== Finding project files ===" && \
+    echo "=== Current working directory: $(pwd) ===" && \
+    echo "=== Checking if project file exists ===" && \
+    ls -la "denudey-api/denudey-api.csproj" && \
     dotnet restore "denudey-api/denudey-api.csproj" --verbosity normal --no-cache || \
     (echo "=== RESTORE FAILED ===" && \
      echo "=== NuGet sources ===" && dotnet nuget list source && \
-     echo "=== Available packages ===" && dotnet list package && \
+     echo "=== Current directory contents ===" && ls -la && \
+     echo "=== Project directory contents ===" && ls -la denudey-api/ && \
      exit 1)
 
 # Build with error handling
@@ -68,7 +73,6 @@ RUN echo "=== Starting publish ===" && \
         -o /app/publish \
         /p:UseAppHost=false \
         --no-restore \
-        --no-build \
         --verbosity normal || \
     (echo "=== PUBLISH FAILED ===" && \
      echo "=== Checking publish directory ===" && ls -la /app/ && \
@@ -100,4 +104,10 @@ RUN addgroup --system --gid 1001 dotnetgroup && \
     adduser --system --uid 1001 --ingroup dotnetgroup dotnetuser
 USER dotnetuser
 
-ENTRYPOINT ["dotnet", "denudey-api.dll"]
+# Dynamic entrypoint - find the main DLL
+RUN MAIN_DLL=$(find . -name "*.dll" | grep -E "(denudey-api|Denudey)" | head -1 | sed 's|^./||') && \
+    echo "Using DLL: $MAIN_DLL" && \
+    echo "dotnet $MAIN_DLL" > /app/start.sh && \
+    chmod +x /app/start.sh
+
+ENTRYPOINT ["/bin/sh", "/app/start.sh"]
