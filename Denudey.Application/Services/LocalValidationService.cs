@@ -10,14 +10,14 @@ using Shared.Events;
 
 namespace Denudey.Application.Services
 {
-    public class DeliveryValidationService : IDeliveryValidationService
+    public class LocalValidationService : IDeliveryValidationService
     {
         private readonly IPublishEndpoint _publishEndpoint;
-        private readonly ILogger<DeliveryValidationService> _logger;
+        private readonly ILogger<LocalValidationService> _logger;
 
-        public DeliveryValidationService(
+        public LocalValidationService(
             IPublishEndpoint publishEndpoint,
-            ILogger<DeliveryValidationService> logger)
+            ILogger<LocalValidationService> logger)
         {
             _publishEndpoint = publishEndpoint;
             _logger = logger;

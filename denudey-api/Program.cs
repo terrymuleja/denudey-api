@@ -165,7 +165,7 @@ namespace denudey_api
             
 
             builder.Services.AddScoped<IEventPublisher, EventPublisher>();
-            builder.Services.AddScoped<IDeliveryValidationService, DeliveryValidationService>();
+            builder.Services.AddScoped<IDeliveryValidationService, LocalValidationService>();
 
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();            
             builder.Services.AddScoped<IShardRouter, SingleShardRouter>();
