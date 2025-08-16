@@ -7,15 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\denudey-api.domain\denudey-api.domain.csproj" />
-    <ProjectReference Include="..\Denudey.Api.Services.Cloudinary\Denudey.Api.Services.Cloudinary.csproj" />
-    <ProjectReference Include="..\Denudey.Api.Services.Infrastructure\Denudey.Api.Services.Infrastructure.csproj" />
-    <ProjectReference Include="..\delivery-validation-service\DeliveryValidationService\Shared.Events\Shared.Events.csproj" />
-    <ProjectReference Include="..\delivery-validation-service\DeliveryValidationService\DeliveryValidationService.Api\DeliveryValidationService.Api.csproj" />
+    <Compile Remove="Events\**" />
+    <EmbeddedResource Remove="Events\**" />
+    <None Remove="Events\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Events\" />
+    <ProjectReference Include="..\denudey-api.domain\denudey-api.domain.csproj" />
+    <ProjectReference Include="..\Denudey.Api.Services.Cloudinary\Denudey.Api.Services.Cloudinary.csproj" />
+    <ProjectReference Include="..\Denudey.Api.Services.Infrastructure\Denudey.Api.Services.Infrastructure.csproj" />
+    <ProjectReference Include="../delivery-validation-service/DeliveryValidationService/Shared.Events/Shared.Events.csproj" />
+    <ProjectReference Include="../delivery-validation-service/DeliveryValidationService/DeliveryValidationService.Api/DeliveryValidationService.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
