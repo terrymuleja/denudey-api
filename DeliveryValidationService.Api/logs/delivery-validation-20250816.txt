@@ -1,0 +1,2 @@
+[2025-08-16 01:20:51 INF] MassTransit: Bus stopped: "rabbitmqs://collie.lmq.cloudamqp.com/pwmcehyj"
+[2025-08-16 01:22:23 INF] : Connecting to RabbitMQ: collie.lmq.cloudamqp.com
