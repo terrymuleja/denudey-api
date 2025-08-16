@@ -173,6 +173,7 @@ namespace denudey_api
             // ✅ 8. HOSTED SERVICES (background services)
             builder.Services.AddHostedService<TokenCleanupService>();
 
+            Console.WriteLine("=============== MassTransit ===============");
             builder.Services.AddMassTransit(x =>
             {
                 // Add consumer for receiving validation results
@@ -184,6 +185,8 @@ namespace denudey_api
                     
                     var rabbitMqUrl = builder.Configuration.GetConnectionString("RabbitMQ")
                                     ?? Environment.GetEnvironmentVariable("CLOUDAMQP_URL");
+
+                    Console.WriteLine($"rabbitMqUrl = {rabbitMqUrl}");
 
                     if (string.IsNullOrEmpty(rabbitMqUrl))
                     {
@@ -206,6 +209,7 @@ namespace denudey_api
                     });
 
                     cfg.ConfigureEndpoints(context);
+                    Console.WriteLine("MassTransit configured with RabbitMQ successfully");
                 });
             });
             Console.WriteLine("=== Configuring Authentication ===");
