@@ -1,3 +1,0 @@
-[submodule "delivery-validation-service"]
-	path = delivery-validation-service
-	url = https://github.com/terrymuleja/delivery-validation-service.git
